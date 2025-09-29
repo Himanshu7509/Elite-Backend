@@ -27,6 +27,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
+      "https://jifsa-crm.vercel.app",
       "https://www.jifsacareers.com",
       "https://www.jifsacareers.in",
     ],
