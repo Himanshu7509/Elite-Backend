@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import dbConnect from "./src/utils/mongodb.js";
 import AuthRouter from "./src/routes/auth.route.js";
 import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
@@ -15,6 +16,11 @@ console.log("PORT:", process.env.PORT || 3000);
 console.log("=== END SERVER STARTUP DEBUG ===");
 
 const app = express();
+
+// Connect to MongoDB when the server starts
+dbConnect().catch(err => {
+  console.error("Failed to connect to MongoDB on startup:", err.message);
+});
 
 app.use(
   cors({
@@ -40,8 +46,6 @@ app.use("/auth", AuthRouter);
 app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
-
-// Remove the global dbConnect() call since each controller will handle its own connection
 
 app.get("/", (req, res) => {
   res.send("API is running...");

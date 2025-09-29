@@ -1,12 +1,8 @@
 import ComplainForm from "../models/complainform.model.js";
-import dbConnect from "../utils/mongodb.js";
 
 // Create a new complain entry (POST)
 export const createComplain = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const complainData = new ComplainForm(req.body);
     const savedComplain = await complainData.save();
     res.status(201).json(savedComplain);
@@ -19,9 +15,6 @@ export const createComplain = async (req, res) => {
 // Get all complain entries (GET)
 export const getComplains = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const complains = await ComplainForm.find();
     res.status(200).json(complains);
   } catch (error) {
@@ -37,9 +30,6 @@ export const getComplains = async (req, res) => {
 // Delete a complain entry by ID (DELETE)
 export const deleteComplain = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const { id } = req.params;
     const deletedComplain = await ComplainForm.findByIdAndDelete(id);
 

@@ -1,12 +1,8 @@
 import AdmissionForm from "../models/admissionform.model.js";
-import dbConnect from "../utils/mongodb.js";
 
 // Create a new admission form (POST)
 export const createAdmissionForm = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const admissionData = new AdmissionForm(req.body);
     const savedAdmission = await admissionData.save();
     res.status(201).json(savedAdmission);
@@ -19,9 +15,6 @@ export const createAdmissionForm = async (req, res) => {
 // Get all admission forms (GET)
 export const getAdmissionForms = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const admissions = await AdmissionForm.find();
     res.status(200).json(admissions);
   } catch (error) {
@@ -37,9 +30,6 @@ export const getAdmissionForms = async (req, res) => {
 // Delete an admission form by ID (DELETE)
 export const deleteAdmissionForm = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const { id } = req.params;
     const deletedAdmission = await AdmissionForm.findByIdAndDelete(id);
 

@@ -1,14 +1,10 @@
 import jwt from "jsonwebtoken";
 import Auth from "../models/auth.model.js";
-import dbConnect from "../utils/mongodb.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 export const login = async (req, res) => {
   try {
-    // Ensure database connection
-    await dbConnect();
-    
     const { email, password } = req.body;
 
     if (email === Auth.email && password === Auth.password) {

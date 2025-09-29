@@ -22,13 +22,12 @@ const dbConnect = async () => {
     console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
     
     const conn = await mongoose.connect(process.env.MONGO_URI, {
+      // Remove deprecated options
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      // Additional options for better serverless support
+      // Keep only valid options
       serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferMaxEntries: 0, // Disable buffering
-      bufferCommands: false, // Disable command buffering
     });
     
     isConnected = conn.connections[0].readyState;
