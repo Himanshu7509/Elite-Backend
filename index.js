@@ -10,7 +10,14 @@ import complainFormRouter from "./src/routes/complainform.route.js";
 dotenv.config();
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow all origins
+const corsOptions = {
+  origin: true, // Allow all origins
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/auth", AuthRouter);
