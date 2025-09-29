@@ -1,12 +1,17 @@
 import Form from "../models/form.model.js";
+import dbConnect from "../utils/mongodb.js";
 
 // Create a new form entry (POST)
 export const createForm = async (req, res) => {
   try {
+    // Ensure database connection
+    await dbConnect();
+    
     const formData = new Form(req.body);
     const savedForm = await formData.save();
     res.status(201).json(savedForm);
   } catch (error) {
+    console.error("Error creating form:", error.message);
     res.status(400).json({ message: error.message });
   }
 };
@@ -20,6 +25,9 @@ export const getForms = async (req, res) => {
     console.log("Request headers:", req.headers);
     console.log("=== END GET FORMS DEBUG ===");
     
+    // Ensure database connection
+    await dbConnect();
+    
     const forms = await Form.find();
     res.status(200).json(forms);
   } catch (error) {
@@ -28,7 +36,7 @@ export const getForms = async (req, res) => {
     res.status(500).json({ 
       message: "Failed to fetch forms",
       error: error.message,
-      stack: error.stack
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -36,6 +44,9 @@ export const getForms = async (req, res) => {
 // Delete a form entry by ID (DELETE)
 export const deleteForm = async (req, res) => {
   try {
+    // Ensure database connection
+    await dbConnect();
+    
     const { id } = req.params;
     const deletedForm = await Form.findByIdAndDelete(id);
 
@@ -45,6 +56,7 @@ export const deleteForm = async (req, res) => {
 
     res.status(200).json({ message: "Form deleted successfully" });
   } catch (error) {
+    console.error("Error deleting form:", error.message);
     res.status(500).json({ message: error.message });
   }
 };

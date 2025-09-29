@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import dbConnect from "./src/utils/mongodb.js";
 import AuthRouter from "./src/routes/auth.route.js";
 import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
@@ -42,7 +41,7 @@ app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
 
-dbConnect();
+// Remove the global dbConnect() call since each controller will handle its own connection
 
 app.get("/", (req, res) => {
   res.send("API is running...");
