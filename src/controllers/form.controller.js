@@ -14,10 +14,22 @@ export const createForm = async (req, res) => {
 // Get all form entries (GET)
 export const getForms = async (req, res) => {
   try {
+    // Log for debugging purposes
+    console.log("=== GET FORMS DEBUG INFO ===");
+    console.log("User from token:", req.user);
+    console.log("Request headers:", req.headers);
+    console.log("=== END GET FORMS DEBUG ===");
+    
     const forms = await Form.find();
     res.status(200).json(forms);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching forms:", error.message);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      message: "Failed to fetch forms",
+      error: error.message,
+      stack: error.stack
+    });
   }
 };
 

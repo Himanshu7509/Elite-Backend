@@ -8,6 +8,13 @@ import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
 
 dotenv.config();
+console.log("=== SERVER STARTUP DEBUG ===");
+console.log("Environment variables loaded:");
+console.log("JWT_SECRET exists:", !!process.env.JWT_SECRET);
+console.log("MONGO_URI exists:", !!process.env.MONGO_URI);
+console.log("PORT:", process.env.PORT || 3000);
+console.log("=== END SERVER STARTUP DEBUG ===");
+
 const app = express();
 
 app.use(
@@ -23,6 +30,12 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 app.use("/auth", AuthRouter);
 app.use('/form',formRouter);

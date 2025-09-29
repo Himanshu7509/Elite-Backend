@@ -5,7 +5,7 @@ import { verifyToken } from "../middleware/auth.middleware.js";
 const complainFormRouter = express.Router();
 
 complainFormRouter.post("/create-form", createComplain);
-complainFormRouter.get("/read-form", getComplains);
+complainFormRouter.get("/read-form",verifyToken, getComplains);
 complainFormRouter.delete("/delete-form/:id",verifyToken, deleteComplain);
 
 export default complainFormRouter
