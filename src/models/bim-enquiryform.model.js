@@ -6,7 +6,7 @@ const bimEnquiryScehma = new mongoose.Schema({
   phoneNo:   { type: String, required: true },
   experience:   { type: String },
   specialisation:{ type: String },
-  productCompany: { type: String, default: "JIFSA" }
+  productCompany: { type: String, default: "Elite BIM" }
 }, { timestamps: true });
 
 const BimEnquiryForm = mongoose.model("BimEnquiryForm", bimEnquiryScehma);
