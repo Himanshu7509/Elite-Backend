@@ -6,7 +6,6 @@ import AuthRouter from "./src/routes/auth.route.js";
 import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
-import bimEnquiryRouter from "./src/routes/bim-enquiryform.route.js";
 
 dotenv.config();
 const app = express();
@@ -18,7 +17,6 @@ app.use("/auth", AuthRouter);
 app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
-app.use('/bim-enquiry', bimEnquiryRouter)
 
 dbConnect();
 
