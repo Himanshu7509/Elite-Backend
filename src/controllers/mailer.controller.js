@@ -4,9 +4,9 @@ dotenv.config();
 
 // ✅ Define transporter ONCE (globally)
 const transporter = nodemailer.createTransport({
-  host: "radiant.herosite.pro",
-  port: 465,
-  secure: true,
+  host: "mail.eliteassociate.in",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
