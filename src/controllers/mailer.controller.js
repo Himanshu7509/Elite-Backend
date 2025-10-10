@@ -1,18 +1,27 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-
 dotenv.config();
 
-// 🔹 Create reusable transporter (Gmail / Zoho / Outlook)
+// ✅ Define transporter ONCE (globally)
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or 'zoho', 'outlook'
+  host: "radiant.herosite.pro",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
+// ✅ Common mail sending function (optional helper)
+const sendMailHelper = async (mailOptions) => {
+  return transporter.sendMail(mailOptions);
+};
 
+// Send mail to a single client
 export const sendSingleMail = async (req, res) => {
   try {
     const { to, subject, message } = req.body;
@@ -22,13 +31,14 @@ export const sendSingleMail = async (req, res) => {
     }
 
     const mailOptions = {
-      from: `"Elite CRM" <${process.env.EMAIL_USER}>`,
+      from: `"Elite Associate" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html: `<p>${message}</p>`,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendMailHelper(mailOptions);
+
     res.status(200).json({ success: true, message: "Mail sent successfully" });
   } catch (error) {
     console.error("Mail Error:", error);
@@ -40,7 +50,7 @@ export const sendSingleMail = async (req, res) => {
   }
 };
 
-
+// Send mail to multiple clients
 export const sendGroupMail = async (req, res) => {
   try {
     const { recipients, subject, message } = req.body;
@@ -50,13 +60,14 @@ export const sendGroupMail = async (req, res) => {
     }
 
     const mailOptions = {
-      from: `"Elite CRM" <${process.env.EMAIL_USER}>`,
-      to: recipients.join(","), // join array into a comma-separated string
+      from: `"Elite Associate" <${process.env.EMAIL_USER}>`,
+      to: recipients.join(","), // join array into comma-separated string
       subject,
       html: `<p>${message}</p>`,
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendMailHelper(mailOptions);
+
     res
       .status(200)
       .json({ success: true, message: "Group mail sent successfully!" });
