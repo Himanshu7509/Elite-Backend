@@ -1,4 +1,3 @@
-
 import nodemailer from 'nodemailer';
 
 class NotificationController {
@@ -74,25 +73,66 @@ class NotificationController {
 
   // Enhanced email with multiple SMTP fallback
   async sendEmail(recipient, subject, message) {
+    // Prioritize custom webmail SMTP as requested by user
     const smtpConfigs = [
       {
-        name: 'primary',
+        name: 'webmail_starttls',
         host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT),
+        port: 587, // Port 587 for cloud compatibility
+        secure: false,
+        requireTLS: true,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        },
+        connectionTimeout: 60000, // Extended timeout for cloud
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        tls: {
+          rejectUnauthorized: false, // For webmail compatibility
+          ciphers: 'SSLv3' // Additional compatibility
+        }
+      },
+      {
+        name: 'webmail_ssl',
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT) || 465,
         secure: process.env.EMAIL_SECURE === 'true',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
         },
-        connectionTimeout: parseInt(process.env.EMAIL_CONN_TIMEOUT) || 10000,
-        greetingTimeout: parseInt(process.env.EMAIL_GREET_TIMEOUT) || 10000,
-        socketTimeout: parseInt(process.env.EMAIL_SOCKET_TIMEOUT) || 10000
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
+        tls: {
+          rejectUnauthorized: false,
+          ciphers: 'SSLv3'
+        }
+      },
+      {
+        name: 'gmail_fallback',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: {
+          user: process.env.GMAIL_USER || process.env.EMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS
+        },
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000
       }
     ];
 
     for (const config of smtpConfigs) {
       try {
+        console.log(`Attempting SMTP connection with ${config.name} on port ${config.port}`);
         const transporter = nodemailer.createTransport(config);
+        
+        // Test the connection first
+        await transporter.verify();
         
         const mailOptions = {
           from: `"Elite Associate" <${config.auth.user}>`,
@@ -110,6 +150,7 @@ class NotificationController {
         };
 
         const result = await transporter.sendMail(mailOptions);
+        console.log(`Email sent successfully via ${config.name}`);
         return { success: true, provider: config.name, messageId: result.messageId };
         
       } catch (error) {
