@@ -7,18 +7,21 @@ import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
 import mailRouter from "./src/routes/mail.route.js";
+import notificationRouter from "./src/routes/notification.route.js";
 
 dotenv.config();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/auth", AuthRouter);
 app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
-app.use('/mail',mailRouter)
+app.use('/mail',mailRouter);
+app.use('/notifications',notificationRouter);
 
 dbConnect();
 
