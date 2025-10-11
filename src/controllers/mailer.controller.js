@@ -1,3 +1,71 @@
+// import { Resend } from "resend";
+// import dotenv from "dotenv";
+// dotenv.config();
+
+// // ✅ Initialize Resend client
+// const resend = new Resend(process.env.RESEND_API_KEY);
+
+// // ✅ Common send function
+// const sendMailHelper = async (to, subject, message) => {
+//   return await resend.emails.send({
+//     from: "Elite Associate <info@eliteassociate.in>", // ✅ your business email
+//     to,                                                // single or array
+//     subject,
+//     html: `<div style="font-family:Arial,sans-serif;padding:10px;">
+//             <h2 style="color:#0a66c2;">Elite Associate</h2>
+//             <p>${message}</p>
+//             <hr />
+//             <small>This message was sent by Elite Associate.</small>
+//           </div>`,
+//   });
+// };
+
+// // 🔹 Send mail to a single client
+// export const sendSingleMail = async (req, res) => {
+//   try {
+//     const { to, subject, message } = req.body;
+
+//     if (!to || !subject || !message) {
+//       return res.status(400).json({ success: false, message: "Missing fields" });
+//     }
+
+//     const data = await sendMailHelper(to, subject, message);
+//     res.status(200).json({ success: true, message: "Mail sent successfully!", data });
+//   } catch (error) {
+//     console.error("Mail Error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to send mail",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // 🔹 Send mail to multiple clients
+// export const sendGroupMail = async (req, res) => {
+//   try {
+//     const { recipients, subject, message } = req.body;
+
+//     if (!recipients || recipients.length === 0) {
+//       return res.status(400).json({ success: false, message: "Recipients are required" });
+//     }
+
+//     const data = await sendMailHelper(recipients, subject, message);
+//     res.status(200).json({
+//       success: true,
+//       message: "Group mail sent successfully!",
+//       data,
+//     });
+//   } catch (error) {
+//     console.error("Group Mail Error:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to send group mail",
+//       error: error.message,
+//     });
+//   }
+// };
+
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
@@ -66,25 +134,91 @@ const sendMailHelper = async (mailOptions) => {
 // Send mail to a single client
 export const sendSingleMail = async (req, res) => {
   try {
-    const { to, subject, message } = req.body;
+    const { to, subject, message } = req.body || {};
 
     if (!to || !subject || !message) {
       return res.status(400).json({ message: "Missing fields" });
     }
 
+    // Enhanced professional email formatting to reduce spam classification
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${subject}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h2 style="color: #2c3e50; margin: 0;">Elite Associate</h2>
+          <p style="color: #7f8c8d; margin: 5px 0 0 0;">Professional Services</p>
+        </div>
+        
+        <div style="background-color: white; padding: 30px; border-radius: 8px; border: 1px solid #e9ecef;">
+          <p style="margin-bottom: 20px;">${message}</p>
+          
+          <hr style="border: none; border-top: 1px solid #e9ecef; margin: 30px 0;">
+          
+          <div style="font-size: 14px; color: #6c757d;">
+            <p><strong>Elite Associate</strong><br>
+            Professional Services & Consultation<br>
+            Email: info@eliteassociate.in</p>
+            
+            <p style="margin-top: 20px; font-size: 12px;">
+              This email was sent from our CRM system. If you received this in error, please contact us at info@eliteassociate.in
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const textContent = `
+Elite Associate - Professional Services
+
+${message}
+
+---
+Elite Associate
+Professional Services & Consultation
+Email: info@eliteassociate.in
+
+This email was sent from our CRM system. If you received this in error, please contact us at info@eliteassociate.in
+    `.trim();
+
     const mailOptions = {
       from: `"Elite Associate" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      html: `<p>${message}</p>`,
+      html: htmlContent,
+      text: textContent,
+      replyTo: process.env.EMAIL_USER,
+      headers: {
+        "X-Mailer": "EliteAssociateMailer v1.0",
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=unsubscribe>`,
+        "X-Priority": "3",
+        "X-MSMail-Priority": "Normal",
+        "Importance": "Normal"
+      },
     };
 
     const info = await sendMailHelper(mailOptions);
+    console.log("SMTP Result (single):", {
+      accepted: info?.accepted,
+      rejected: info?.rejected,
+      response: info?.response,
+      envelope: info?.envelope,
+      messageId: info?.messageId,
+    });
 
     res.status(200).json({
       success: true,
       message: "Mail sent successfully",
       id: info?.messageId,
+      accepted: info?.accepted,
+      rejected: info?.rejected,
+      response: info?.response,
+      envelope: info?.envelope,
     });
   } catch (error) {
     console.error("Mail Error:", error);
@@ -102,7 +236,7 @@ export const sendSingleMail = async (req, res) => {
 // Send mail to multiple clients
 export const sendGroupMail = async (req, res) => {
   try {
-    const { recipients, subject, message } = req.body;
+    const { recipients, subject, message } = req.body || {};
 
     if (!recipients || recipients.length === 0) {
       return res.status(400).json({ message: "Recipients are required" });
@@ -115,9 +249,22 @@ export const sendGroupMail = async (req, res) => {
       bcc: Array.isArray(recipients) ? recipients.join(",") : recipients,
       subject,
       html: `<p>${message}</p>`,
+      text: `${message}`,
+      replyTo: process.env.EMAIL_USER,
+      headers: {
+        "X-Mailer": "EliteAssociateMailer",
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=unsubscribe>`
+      },
     };
 
     const info = await sendMailHelper(mailOptions);
+    console.log("SMTP Result (group):", {
+      accepted: info?.accepted,
+      rejected: info?.rejected,
+      response: info?.response,
+      envelope: info?.envelope,
+      messageId: info?.messageId,
+    });
 
     res
       .status(200)
