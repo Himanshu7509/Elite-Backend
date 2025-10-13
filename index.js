@@ -8,7 +8,7 @@ import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
 import mailRouter from "./src/routes/mail.route.js";
 import notificationRouter from "./src/routes/notification.route.js";
-import PyamentDetailRouter from "./src/routes/paymentDetail.route.js";
+import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
 
 dotenv.config();
 const app = express();
@@ -22,7 +22,7 @@ app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
 app.use('/mail',mailRouter)
 app.use('/notifications',notificationRouter);
-app.use('/payment-detail', PyamentDetailRouter)
+app.use('/payment-detail', PayamentDetailRouter)
 
 
 dbConnect();

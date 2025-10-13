@@ -1,12 +1,16 @@
 import express from 'express'
-import { createPaymentDetail, getAllPaymentDetails, upload } from '../controllers/paymentDetail.controller.js'
+import { createPaymentDetail, getAllPaymentDetails, upload, deletePaymentDetail } from '../controllers/paymentDetail.controller.js'
 
-const PyamentDetailRouter = express.Router();
+const PayamentDetailRouter = express.Router();
 
 // POST: Create payment detail
-PyamentDetailRouter.post("/create", upload.single("uploadImg"), createPaymentDetail);
+PayamentDetailRouter.post("/create", upload.single("uploadImg"), createPaymentDetail);
 
 // GET: Get all payment details
-PyamentDetailRouter.get("/get-all", getAllPaymentDetails);
+PayamentDetailRouter.get("/get-all", getAllPaymentDetails);
 
-export default PyamentDetailRouter;
+// DELETE: Delete a payment detail
+PayamentDetailRouter.delete("/delete/:id", deletePaymentDetail);
+
+export default PayamentDetailRouter;
+

@@ -65,3 +65,42 @@ export const getAllPaymentDetails = async (req, res) => {
     });
   }
 };
+
+// DELETE: Remove a payment detail + its image from S3
+export const deletePaymentDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const payment = await PaymentDetail.findById(id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: "Payment not found" });
+    }
+
+    // Extract image key from URL
+    const imageUrl = payment.uploadImg;
+    const key = imageUrl.split(".amazonaws.com/")[1]; // everything after the domain
+
+    // Delete image from S3
+    await s3
+      .deleteObject({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
+      })
+      .promise();
+
+    // Delete from MongoDB
+    await PaymentDetail.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment and image deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete payment",
+      error: error.message,
+    });
+  }
+};
