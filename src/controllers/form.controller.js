@@ -223,10 +223,37 @@ export const assignLead = async (req, res) => {
       return res.status(404).json({ message: "Assigned member not found" });
     }
 
-    // Find the team member (or admin) who is assigning
-    let assignedByUser = await Team.findOne({ email: assignedBy });
-    if (!assignedByUser) {
-      assignedByUser = { _id: null, email: assignedBy, name: "Admin" };
+    // Determine who is doing the assignment
+    let assignedByUser = null;
+    let assignedById = null;
+    let assignedByName = null;
+    
+    // If assignedBy is provided in the request, use it
+    if (assignedBy) {
+      // Check if the assignedBy is a team member
+      assignedByUser = await Team.findOne({ email: assignedBy });
+      if (assignedByUser) {
+        assignedById = assignedByUser._id;
+        assignedByName = assignedByUser.name;
+      } else {
+        // If not a team member, it might be an admin
+        // Check if it matches the authenticated user
+        if (req.user.email === assignedBy) {
+          assignedByName = `Admin (${assignedBy})`;
+        } else {
+          assignedByName = assignedBy;
+        }
+      }
+    } else {
+      // If no assignedBy provided, use the authenticated user
+      assignedBy = req.user.email;
+      if (req.user.role === "admin") {
+        assignedByName = `Admin (${req.user.email})`;
+      } else {
+        // For managers, get their name from the team collection
+        const manager = await Team.findOne({ email: req.user.email });
+        assignedByName = manager ? manager.name : req.user.email;
+      }
     }
 
     // Find the lead before updating (to check for previous assignment)
@@ -240,12 +267,13 @@ export const assignLead = async (req, res) => {
       id,
       {
         assignedTo: assignedUser._id,
-        assignedBy: assignedByUser?._id || null,
+        assignedBy: assignedById, // Store the ID if it's a team member, otherwise null
+        assignedByName: assignedByName, // Store the name for display purposes
       },
       { new: true }
     ).populate("assignedTo assignedBy", "name email");
 
-    // ✅ Update the assigned team member’s record
+    // ✅ Update the assigned team member's record
     await Team.findByIdAndUpdate(assignedUser._id, {
       $addToSet: { assignedLeads: updatedForm._id },
     });

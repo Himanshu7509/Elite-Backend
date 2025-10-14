@@ -40,7 +40,20 @@ export const getAllTeamMembers = async (req, res) => {
 
     const members = await Team.find()
       .select("-password")
-      .populate("assignedLeads", "fullName email phoneNo status");
+      .populate({
+        path: "assignedLeads",
+        select: "fullName email phoneNo status assignedTo assignedBy assignedByName",
+        populate: [
+          {
+            path: "assignedTo",
+            select: "name email"
+          },
+          {
+            path: "assignedBy",
+            select: "name email"
+          }
+        ]
+      });
     
     res.status(200).json({ success: true, data: members });
   } catch (error) {

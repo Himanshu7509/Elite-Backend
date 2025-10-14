@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import Auth from "../models/auth.model.js";
 import Team from "../models/team.model.js";
 
@@ -19,8 +20,8 @@ export const login = async (req, res) => {
       });
     }
 
-    // --- Manager Login ---
-    if (Auth.manager.emails.includes(email) && password === Auth.sales.password) {
+    // --- Manager Login (from environment variables) ---
+    if (Auth.manager.emails.includes(email) && password === Auth.manager.password) {
       const token = jwt.sign({ email, role: "manager" }, JWT_SECRET, { expiresIn: "24h" });
 
       return res.status(200).json({
@@ -30,7 +31,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // --- Sales Team Login ---
+    // --- Sales Team Login (from environment variables) ---
     if (Auth.sales.emails.includes(email) && password === Auth.sales.password) {
       const token = jwt.sign({ email, role: "sales" }, JWT_SECRET, { expiresIn: "24h" });
 
@@ -39,6 +40,21 @@ export const login = async (req, res) => {
         token,
         role: "sales"
       });
+    }
+
+    // --- Check database for team members ---
+    const teamMember = await Team.findOne({ email });
+    if (teamMember) {
+      const isPasswordValid = await bcrypt.compare(password, teamMember.password);
+      if (isPasswordValid) {
+        const token = jwt.sign({ email, role: teamMember.role }, JWT_SECRET, { expiresIn: "24h" });
+
+        return res.status(200).json({
+          message: `${teamMember.role} login successful`,
+          token,
+          role: teamMember.role
+        });
+      }
     }
 
     // --- Invalid credentials ---

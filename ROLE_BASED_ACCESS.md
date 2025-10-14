@@ -57,14 +57,19 @@ This document explains the role-based access control system implemented in the E
 To configure the RBAC system, you need to set the following environment variables in your `.env` file:
 
 ```
+# Admin Credentials
 ADMIN_EMAIL=your_admin_email@example.com
 ADMIN_PASSWORD=your_admin_password
 
+# Manager Credentials (multiple emails separated by commas)
 MANAGER_EMAILS=manager1@example.com,manager2@example.com
+MANAGER_PASSWORD=your_manager_password
 
+# Sales Team Credentials (multiple emails separated by commas)
 SALES_EMAILS=sales1@example.com,sales2@example.com
 SALES_PASSWORD=your_sales_password
 
+# JWT Secret
 JWT_SECRET=your_jwt_secret_key
 ```
 
@@ -74,7 +79,7 @@ JWT_SECRET=your_jwt_secret_key
 1. Users authenticate via `POST /auth/login` with their email and password
 2. Based on the email and password combination, the system determines the user role:
    - If email matches `ADMIN_EMAIL` and password matches `ADMIN_PASSWORD`, role is "admin"
-   - If email is in `MANAGER_EMAILS` and password matches `SALES_PASSWORD`, role is "manager"
+   - If email is in `MANAGER_EMAILS` and password matches `MANAGER_PASSWORD`, role is "manager"
    - If email is in `SALES_EMAILS` and password matches `SALES_PASSWORD`, role is "sales"
 3. A JWT token is generated with the user's email and role
 4. The token is used in the `Authorization` header for all subsequent requests

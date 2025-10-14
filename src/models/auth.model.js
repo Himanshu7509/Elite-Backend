@@ -16,6 +16,7 @@ const Auth = {
   },
   manager: {
     emails: managerEmails,
+    password: process.env.MANAGER_PASSWORD, // Added manager password
   },
   sales: {
     emails: salesEmails,

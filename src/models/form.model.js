@@ -29,6 +29,7 @@ const formSchema = new mongoose.Schema(
     // CRM system fields
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
     assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Team", default: null },
+    assignedByName: { type: String, default: null }, // Name of the person who assigned the lead
     status: {
       type: String,
       enum: ["unread", "read", "interested", "not_interested"],
