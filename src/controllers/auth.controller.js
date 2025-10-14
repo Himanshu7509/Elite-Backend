@@ -7,16 +7,30 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (email === Auth.email && password === Auth.password) {
-      const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "24h" });
+    // --- Admin Login ---
+    if (email === Auth.admin.email && password === Auth.admin.password) {
+      const token = jwt.sign({ email, role: "admin" }, JWT_SECRET, { expiresIn: "24h" });
 
       return res.status(200).json({
-        message: "Login successful",
-        token
+        message: "Admin login successful",
+        token,
+        role: "admin"
       });
-    } else {
-      return res.status(401).json({ message: "Invalid email or password" });
     }
+
+    // --- Sales Team Login ---
+    if (Auth.sales.emails.includes(email) && password === Auth.sales.password) {
+      const token = jwt.sign({ email, role: "sales" }, JWT_SECRET, { expiresIn: "24h" });
+
+      return res.status(200).json({
+        message: "Sales team login successful",
+        token,
+        role: "sales"
+      });
+    }
+
+    // --- Invalid credentials ---
+    return res.status(401).json({ message: "Invalid email or password" });
   } catch (error) {
     console.error("Login error:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });

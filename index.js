@@ -9,6 +9,7 @@ import complainFormRouter from "./src/routes/complainform.route.js";
 import mailRouter from "./src/routes/mail.route.js";
 import notificationRouter from "./src/routes/notification.route.js";
 import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
+import TeamRouter from "./src/routes/team.route.js";
 
 dotenv.config();
 const app = express();
@@ -22,7 +23,8 @@ app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
 app.use('/mail',mailRouter)
 app.use('/notifications',notificationRouter);
-app.use('/payment-detail', PayamentDetailRouter)
+app.use('/payment-detail', PayamentDetailRouter);
+app.use('/team', TeamRouter)
 
 
 dbConnect();

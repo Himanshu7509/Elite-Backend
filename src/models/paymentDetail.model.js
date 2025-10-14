@@ -11,7 +11,7 @@ const paymentDetailSchema = new mongoose.Schema({
     required: true,
   },
   uploadImg: {
-    type: String, // This will store the S3 file URL
+    type: String, 
     required: true,
   },
 }, { timestamps: true });
