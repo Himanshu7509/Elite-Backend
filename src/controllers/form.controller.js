@@ -12,27 +12,27 @@ export const createForm = async (req, res) => {
   }
 };
 
-// ✅ Get all leads — admin sees all, sales sees only unassigned or assigned to them
+// ✅ Get all leads based on user role
 export const getForms = async (req, res) => {
   try {
     const user = req.user; // populated from verifyToken middleware
     let filter = {};
 
-    if (user.role === "sales") {
-      // Find the sales team member in the Team collection
+    if (user.role === "admin" || user.role === "manager") {
+      // Admin and manager can see all leads
+      filter = {};
+    } else if (user.role === "sales") {
+      // Sales can only see leads assigned to them
       const teamMember = await Team.findOne({ email: user.email });
 
       if (!teamMember) {
         return res.status(404).json({ message: "Sales team member not found" });
       }
 
-      // Only show leads assigned to this member or unassigned
-      filter = {
-        $or: [
-          { assignedTo: teamMember._id },
-          { assignedTo: null } // unassigned leads
-        ]
-      };
+      // Only show leads assigned to this member
+      filter = { assignedTo: teamMember._id };
+    } else {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     const forms = await Form.find(filter)
@@ -47,6 +47,66 @@ export const getForms = async (req, res) => {
   }
 };
 
+// ✅ Get all leads (unassigned and assigned) - for admin and manager
+export const getAllForms = async (req, res) => {
+  try {
+    // Only admin and manager can see all leads
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
+    }
+
+    const forms = await Form.find()
+      .populate("assignedTo", "name email")
+      .populate("assignedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(forms);
+  } catch (error) {
+    console.error("Error fetching forms:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get unassigned leads - for admin and manager to assign
+export const getUnassignedForms = async (req, res) => {
+  try {
+    // Only admin and manager can see unassigned leads
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
+    }
+
+    const forms = await Form.find({ assignedTo: null })
+      .populate("assignedTo", "name email")
+      .populate("assignedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(forms);
+  } catch (error) {
+    console.error("Error fetching forms:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Get leads assigned to a specific sales member - for admin and manager
+export const getAssignedForms = async (req, res) => {
+  try {
+    // Only admin and manager can see assigned leads
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
+    }
+
+    const { salesId } = req.params;
+    const forms = await Form.find({ assignedTo: salesId })
+      .populate("assignedTo", "name email")
+      .populate("assignedBy", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(forms);
+  } catch (error) {
+    console.error("Error fetching forms:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // ✅ Update form details (partial update)
 export const updateFormDetails = async (req, res) => {
@@ -54,12 +114,21 @@ export const updateFormDetails = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // Ensure form exists
-    const existingForm = await Form.findById(id);
-    if (!existingForm) {
+    // Check if user has permission to update this form
+    const form = await Form.findById(id);
+    if (!form) {
       return res.status(404).json({ message: "Form not found" });
     }
 
+    // For sales, they can only update forms assigned to them
+    if (req.user.role === "sales") {
+      const teamMember = await Team.findOne({ email: req.user.email });
+      if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
+        return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
+      }
+    }
+
+    // Admin and manager can update any form
     // Update only the provided fields
     const updatedForm = await Form.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -76,17 +145,30 @@ export const updateFormDetails = async (req, res) => {
   }
 };
 
-
 // ✅ Mark a lead as read
 export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Check if user has permission to mark this form as read
+    const form = await Form.findById(id);
+    if (!form) {
+      return res.status(404).json({ message: "Form not found" });
+    }
+
+    // For sales, they can only mark forms assigned to them as read
+    if (req.user.role === "sales") {
+      const teamMember = await Team.findOne({ email: req.user.email });
+      if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
+        return res.status(403).json({ message: "Access denied. You can only mark leads assigned to you as read." });
+      }
+    }
+
     const updatedForm = await Form.findByIdAndUpdate(
       id,
       { isRead: true, status: "read" },
       { new: true }
     );
-    if (!updatedForm) return res.status(404).json({ message: "Lead not found" });
     res.status(200).json(updatedForm);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -104,8 +186,21 @@ export const updateStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status value" });
     }
 
+    // Check if user has permission to update status of this form
+    const form = await Form.findById(id);
+    if (!form) {
+      return res.status(404).json({ message: "Form not found" });
+    }
+
+    // For sales, they can only update status of forms assigned to them
+    if (req.user.role === "sales") {
+      const teamMember = await Team.findOne({ email: req.user.email });
+      if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
+        return res.status(403).json({ message: "Access denied. You can only update status of leads assigned to you." });
+      }
+    }
+
     const updatedForm = await Form.findByIdAndUpdate(id, { status }, { new: true });
-    if (!updatedForm) return res.status(404).json({ message: "Lead not found" });
     res.status(200).json(updatedForm);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -114,6 +209,11 @@ export const updateStatus = async (req, res) => {
 
 export const assignLead = async (req, res) => {
   try {
+    // Only admin and manager can assign leads
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      return res.status(403).json({ message: "Access denied. Only admin or manager can assign leads." });
+    }
+
     const { id } = req.params; // Lead ID
     const { assignedTo, assignedBy } = req.body;
 
