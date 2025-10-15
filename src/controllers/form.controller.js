@@ -1,5 +1,4 @@
 import Form from "../models/form.model.js";
-import Team from "../models/team.model.js";
 
 // ✅ Create a new lead/form entry
 export const createForm = async (req, res) => {
@@ -354,6 +353,39 @@ export const assignLead = async (req, res) => {
     });
   } catch (error) {
     console.error("Error assigning lead:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ✅ Delete a lead - only admin can delete leads
+export const deleteLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only admin can delete leads." });
+    }
+
+    // Find the lead
+    const form = await Form.findById(id);
+    if (!form) {
+      return res.status(404).json({ message: "Lead not found" });
+    }
+
+    // If the lead is assigned to a sales person, remove it from their assigned leads
+    if (form.assignedTo) {
+      await Team.findByIdAndUpdate(form.assignedTo, {
+        $pull: { assignedLeads: form._id },
+      });
+    }
+
+    // Delete the lead
+    await Form.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Lead deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting lead:", error.message);
     res.status(500).json({ message: error.message });
   }
 };

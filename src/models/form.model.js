@@ -52,7 +52,6 @@ const formSchema = new mongoose.Schema(
       default: "other" 
     },
 
-    // Additional location fields
     feedback: { type: String },
     city: { type: String },
     state: { type: String },

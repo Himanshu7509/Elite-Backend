@@ -8,10 +8,12 @@ import {
   markAsRead,
   updateStatus,
   assignLead,
-  updateFormDetails
+  updateFormDetails,
+  deleteLead
 } from "../controllers/form.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/optionalAuth.middleware.js";
+import { isAdmin } from "../middleware/role.middleware.js";
 
 const formRouter = express.Router();
 
@@ -24,5 +26,6 @@ formRouter.patch("/update/:id", verifyToken, updateFormDetails);
 formRouter.patch("/:id/read", verifyToken, markAsRead);
 formRouter.patch("/:id/status", verifyToken, updateStatus);
 formRouter.patch("/:id/assign", verifyToken, assignLead);
+formRouter.delete("/delete-form/:id", verifyToken, isAdmin, deleteLead);
 
 export default formRouter;
