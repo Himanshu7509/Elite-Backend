@@ -14,7 +14,21 @@ import TeamRouter from "./src/routes/team.route.js";
 dotenv.config();
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow requests from frontend origins
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',           // Local development
+    'http://localhost:3000',           // Common dev port
+    'http://127.0.0.1:5173',          // Alternative localhost
+    'http://127.0.0.1:3000',          // Alternative localhost
+    'https://elitebmi.in',             // Production frontend
+    'https://www.elitebmi.in'          // Production frontend with www
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use("/auth", AuthRouter);
