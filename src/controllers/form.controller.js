@@ -22,15 +22,23 @@ export const getForms = async (req, res) => {
       // Admin and manager can see all leads
       filter = {};
     } else if (user.role === "sales") {
-      // Sales can only see leads assigned to them
+      // Sales can see:
+      // 1. Leads assigned to them
+      // 2. Unassigned leads (not assigned to anyone)
+      // But NOT leads assigned to other sales persons
       const teamMember = await Team.findOne({ email: user.email });
 
       if (!teamMember) {
         return res.status(404).json({ message: "Sales team member not found" });
       }
 
-      // Only show leads assigned to this member
-      filter = { assignedTo: teamMember._id };
+      // Filter to show leads assigned to this member OR unassigned leads
+      filter = {
+        $or: [
+          { assignedTo: teamMember._id }, // Leads assigned to this sales person
+          { assignedTo: null } // Unassigned leads
+        ]
+      };
     } else {
       return res.status(403).json({ message: "Access denied" });
     }
