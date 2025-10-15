@@ -3,7 +3,7 @@ import {
   createTeamMember,
   getAllTeamMembers,
   deleteTeamMember,
-  getTeamMemberById
+  getTeamMemberById,
 } from "../controllers/team.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 

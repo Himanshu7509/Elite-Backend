@@ -16,7 +16,8 @@ export const login = async (req, res) => {
       return res.status(200).json({
         message: "Admin login successful",
         token,
-        role: "admin"
+        role: "admin",
+        _id: null // Admin doesn't have an _id in the database
       });
     }
 
@@ -27,7 +28,8 @@ export const login = async (req, res) => {
       return res.status(200).json({
         message: "Manager login successful",
         token,
-        role: "manager"
+        role: "manager",
+        _id: null // Manager doesn't have an _id in the database
       });
     }
 
@@ -38,7 +40,8 @@ export const login = async (req, res) => {
       return res.status(200).json({
         message: "Sales team login successful",
         token,
-        role: "sales"
+        role: "sales",
+        _id: null // Static sales users don't have an _id in the database
       });
     }
 
@@ -47,12 +50,13 @@ export const login = async (req, res) => {
     if (teamMember) {
       const isPasswordValid = await bcrypt.compare(password, teamMember.password);
       if (isPasswordValid) {
-        const token = jwt.sign({ email, role: teamMember.role }, JWT_SECRET, { expiresIn: "24h" });
+        const token = jwt.sign({ email, role: teamMember.role, _id: teamMember._id }, JWT_SECRET, { expiresIn: "24h" });
 
         return res.status(200).json({
           message: `${teamMember.role} login successful`,
           token,
-          role: teamMember.role
+          role: teamMember.role,
+          _id: teamMember._id // Include the _id for database users
         });
       }
     }
