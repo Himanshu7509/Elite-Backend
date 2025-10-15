@@ -4,8 +4,63 @@ import Team from "../models/team.model.js";
 // ✅ Create a new lead/form entry
 export const createForm = async (req, res) => {
   try {
-    const formData = new Form(req.body);
-    const savedForm = await formData.save();
+    // Prepare the form data with tracking information
+    const formData = { ...req.body };
+    
+    // If user is authenticated, track who created the lead
+    if (req.user) {
+      // Set the source based on user role
+      formData.source = req.user.role;
+      
+      // Get user details for tracking
+      let creatorInfo = {
+        email: req.user.email,
+        role: req.user.role
+      };
+      
+      // If it's a database user (not static), get additional info
+      if (req.user._id) {
+        const teamMember = await Team.findById(req.user._id);
+        if (teamMember) {
+          creatorInfo.userId = teamMember._id;
+          creatorInfo.name = teamMember.name;
+          
+          // If a sales person is creating a lead, automatically assign it to them
+          if (req.user.role === "sales") {
+            formData.assignedTo = teamMember._id;
+            formData.assignedBy = teamMember._id;
+            formData.assignedByName = teamMember.name;
+          }
+        }
+      } else {
+        // For static users (admin, manager, sales), use email as name
+        creatorInfo.name = req.user.email;
+      }
+      
+      formData.createdBy = creatorInfo;
+    } else {
+      // If no user is authenticated, it's likely from website
+      formData.source = "website";
+      formData.createdBy = {
+        email: "website",
+        role: "website",
+        name: "Website Submission"
+      };
+    }
+    
+    const newForm = new Form(formData);
+    const savedForm = await newForm.save();
+    
+    // If this is a sales person's lead, update their assigned leads
+    if (req.user && req.user.role === "sales" && req.user._id) {
+      const teamMember = await Team.findById(req.user._id);
+      if (teamMember) {
+        await Team.findByIdAndUpdate(teamMember._id, {
+          $addToSet: { assignedLeads: savedForm._id },
+        });
+      }
+    }
+    
     res.status(201).json(savedForm);
   } catch (error) {
     res.status(400).json({ message: error.message });

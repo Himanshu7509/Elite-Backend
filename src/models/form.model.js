@@ -36,6 +36,28 @@ const formSchema = new mongoose.Schema(
       default: "unread",
     },
 
+    // Tracking fields
+    createdBy: { 
+      type: {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+        email: { type: String },
+        role: { type: String },
+        name: { type: String }
+      },
+      default: null 
+    },
+    source: { 
+      type: String, 
+      enum: ["website", "admin", "manager", "sales", "other"],
+      default: "other" 
+    },
+
+    // Additional location fields
+    feedback: { type: String },
+    city: { type: String },
+    state: { type: String },
+    pincode: { type: String },
+
     // Date fields
     date: { type: Date, default: Date.now }, // ✅ New field (Form submission date)
   },

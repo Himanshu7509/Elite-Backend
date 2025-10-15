@@ -11,10 +11,11 @@ import {
   updateFormDetails
 } from "../controllers/form.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
+import { optionalAuth } from "../middleware/optionalAuth.middleware.js";
 
 const formRouter = express.Router();
 
-formRouter.post("/create-form", createForm);
+formRouter.post("/create-form", optionalAuth, createForm);
 formRouter.get("/read-form", verifyToken, getForms);
 formRouter.get("/read-all-forms", verifyToken, getAllForms);
 formRouter.get("/unassigned", verifyToken, getUnassignedForms);
