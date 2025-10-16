@@ -82,12 +82,28 @@ POST /mail/send-group
 Create a `.env` file based on `.env.example` with your email configuration:
 
 ```env
-EMAIL_HOST=mail.eliteassociate.in
+# For Gmail (recommended for cloud deployments like Render/AWS)
+EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
-EMAIL_USER=your_email@eliteassociate.in
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+
+# For custom SMTP servers
+EMAIL_HOST=mail.yourdomain.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=your_email@yourdomain.com
 EMAIL_PASS=your_email_password
 ```
+
+### Setting up Gmail for Production
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an App Password:
+   - Go to your Google Account settings
+   - Navigate to Security > 2-Step Verification > App passwords
+   - Generate a new app password for "Mail"
+   - Use this app password as your `EMAIL_PASS`
 
 ### SMTP Configuration for Deployment
 The system is configured to work with various hosting environments including:
@@ -97,8 +113,8 @@ The system is configured to work with various hosting environments including:
 - Other cloud platforms
 
 The system includes multiple fallback mechanisms:
-1. Primary SMTP configuration (port 587)
-2. Fallback to SSL/TLS (port 465)
+1. Primary SMTP configuration (Gmail recommended)
+2. Fallback to custom SMTP settings
 3. Alternative TLS settings
 4. Connection timeout handling
 
@@ -150,3 +166,10 @@ To test the mail system:
        "message": "This is a test notice"
      }'
    ```
+
+## Cloud Deployment Notes
+When deploying to cloud platforms like Render or AWS:
+1. Use Gmail with App Passwords for reliable email delivery
+2. Custom SMTP servers may be blocked by cloud provider firewalls
+3. Gmail has better deliverability from cloud platforms
+4. Make sure to set up proper DNS records (SPF, DKIM) for your domain to avoid spam filtering
