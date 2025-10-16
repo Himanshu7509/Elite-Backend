@@ -2,16 +2,15 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
 
-// Enhanced SMTP configuration with Gmail priority and better fallback handling
+// Enhanced SMTP configuration with multiple fallback options
 const createSMTPConfig = () => {
   // Validate required environment variables
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
   }
 
-  // Check if Gmail configuration is available (recommended for cloud deployments)
+  // Check if Gmail configuration is available
   const isGmailConfig = process.env.EMAIL_HOST === 'smtp.gmail.com' || 
-                        process.env.GMAIL_USER || 
                         process.env.EMAIL_USER?.includes('@gmail.com');
 
   if (isGmailConfig) {
@@ -21,23 +20,25 @@ const createSMTPConfig = () => {
       port: 587,
       secure: false, // true for 465, false for 587
       auth: {
-        user: process.env.GMAIL_USER || process.env.EMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD || process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
       tls: {
         rejectUnauthorized: false,
+        // Additional TLS options for better compatibility
+        ciphers: 'SSLv3',
       },
-      // Connection robustness for cloud deployments
-      connectionTimeout: Number(process.env.EMAIL_CONN_TIMEOUT) || 30000, // 30s
-      greetingTimeout: Number(process.env.EMAIL_GREET_TIMEOUT) || 30000, // 30s
-      socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT) || 30000, // 30s
-      // Enable pooling to reuse connections in rapid successive sends
+      // Connection settings optimized for cloud environments
+      connectionTimeout: 60000, // 60 seconds
+      greetingTimeout: 30000, // 30 seconds
+      socketTimeout: 60000, // 60 seconds
+      // Enable pooling to reuse connections
       pool: true,
-      maxConnections: Number(process.env.EMAIL_MAX_CONN) || 5,
-      maxMessages: Number(process.env.EMAIL_MAX_MSGS) || 100,
-      // Rate limiting to prevent overwhelming the SMTP server
-      rateDelta: Number(process.env.EMAIL_RATE_DELTA) || 1000, // 1 second
-      rateLimit: Number(process.env.EMAIL_RATE_LIMIT) || 5, // 5 messages per second
+      maxConnections: 3,
+      maxMessages: 50,
+      // Rate limiting
+      rateDelta: 1000,
+      rateLimit: 3,
     };
   }
 
@@ -122,102 +123,53 @@ const sendMailHelper = async (mailOptions) => {
 
   try {
     // First attempt with primary configuration
+    console.log('Attempting primary SMTP configuration...');
     return await transporter.sendMail(mailOptions);
   } catch (error) {
     console.warn('Primary SMTP attempt failed:', error.message);
     
-    // Fallback to Gmail if not already using Gmail
-    const isGmailConfig = process.env.EMAIL_HOST === 'smtp.gmail.com' || 
-                          process.env.GMAIL_USER || 
-                          process.env.EMAIL_USER?.includes('@gmail.com');
-    
-    if (!isGmailConfig && (process.env.GMAIL_USER || process.env.GMAIL_APP_PASSWORD)) {
-      try {
-        console.log('Attempting fallback to Gmail SMTP...');
-        const gmailConfig = {
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.GMAIL_USER,
-            pass: process.env.GMAIL_APP_PASSWORD,
-          },
-          tls: {
-            rejectUnauthorized: false,
-          },
-          connectionTimeout: 30000,
-          greetingTimeout: 30000,
-          socketTimeout: 30000,
-          pool: true,
-          maxConnections: 5,
-          maxMessages: 100,
-        };
-        
-        const gmailTransporter = nodemailer.createTransport(gmailConfig);
-        await gmailTransporter.verify();
-        return await gmailTransporter.sendMail(mailOptions);
-      } catch (gmailError) {
-        console.warn('Gmail fallback attempt failed:', gmailError.message);
-      }
+    // Try with different connection settings
+    try {
+      console.log('Attempting with relaxed connection settings...');
+      const relaxedConfig = createSMTPConfig();
+      relaxedConfig.connectionTimeout = 120000; // 2 minutes
+      relaxedConfig.socketTimeout = 120000; // 2 minutes
+      relaxedConfig.tls = { rejectUnauthorized: false };
+      
+      const relaxedTransporter = nodemailer.createTransport(relaxedConfig);
+      await relaxedTransporter.verify();
+      return await relaxedTransporter.sendMail(mailOptions);
+    } catch (relaxedError) {
+      console.warn('Relaxed connection attempt failed:', relaxedError.message);
     }
     
-    // Fallback attempt using port 465 (secure) if we hit connection/timeout errors
-    if (isConnTimeoutError(error)) {
-      try {
-        console.log('Attempting fallback SMTP configuration on port 465...');
-        const fallbackConfig = {
-          host: process.env.EMAIL_HOST || "mail.eliteassociate.in",
-          port: 465,
-          secure: true,
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-          tls: {
-            rejectUnauthorized: false,
-            ciphers: 'SSLv3',
-          },
-          connectionTimeout: 30000,
-          greetingTimeout: 30000,
-          socketTimeout: 30000,
-          pool: true,
-          maxConnections: 5,
-          maxMessages: 100,
-        };
-        const fallbackTransporter = nodemailer.createTransport(fallbackConfig);
-        await fallbackTransporter.verify();
-        return await fallbackTransporter.sendMail(mailOptions);
-      } catch (fallbackError) {
-        console.warn('Fallback SMTP attempt failed:', fallbackError.message);
-      }
+    // Try with different port (587 -> 465 or 465 -> 587)
+    try {
+      console.log('Attempting with alternative port...');
+      const altPortConfig = createSMTPConfig();
+      altPortConfig.port = altPortConfig.port === 587 ? 465 : 587;
+      altPortConfig.secure = altPortConfig.port === 465;
+      
+      const altPortTransporter = nodemailer.createTransport(altPortConfig);
+      await altPortTransporter.verify();
+      return await altPortTransporter.sendMail(mailOptions);
+    } catch (altPortError) {
+      console.warn('Alternative port attempt failed:', altPortError.message);
     }
     
     // Try with different TLS settings
     try {
-      console.log('Attempting SMTP with alternative TLS settings...');
-      const altTLSConfig = {
-        host: process.env.EMAIL_HOST || "mail.eliteassociate.in",
-        port: Number(process.env.EMAIL_PORT) || 587,
-        secure: process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE.toLowerCase() === 'true' : false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        tls: {
-          rejectUnauthorized: true, // Try with strict certificate validation
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
+      console.log('Attempting with alternative TLS settings...');
+      const altTLSConfig = createSMTPConfig();
+      altTLSConfig.tls = {
+        rejectUnauthorized: true, // Try with strict certificate validation
       };
+      
       const altTLSTransporter = nodemailer.createTransport(altTLSConfig);
       await altTLSTransporter.verify();
       return await altTLSTransporter.sendMail(mailOptions);
     } catch (altTLSError) {
-      console.warn('Alternative TLS SMTP attempt failed:', altTLSError.message);
+      console.warn('Alternative TLS attempt failed:', altTLSError.message);
     }
     
     // If all attempts fail, throw the original error
@@ -285,15 +237,15 @@ This email was sent from our CRM system. If you received this in error, please c
     `.trim();
 
     const mailOptions = {
-      from: `"Elite Associate" <${process.env.GMAIL_USER || process.env.EMAIL_USER}>`,
+      from: `"Elite Associate" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html: htmlContent,
       text: textContent,
-      replyTo: process.env.GMAIL_USER || process.env.EMAIL_USER,
+      replyTo: process.env.EMAIL_USER,
       headers: {
         "X-Mailer": "EliteAssociateMailer v1.0",
-        "List-Unsubscribe": `<mailto:${process.env.GMAIL_USER || process.env.EMAIL_USER}?subject=unsubscribe>`,
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=unsubscribe>`,
         "X-Priority": "3",
         "X-MSMail-Priority": "Normal",
         "Importance": "Normal"
@@ -352,16 +304,16 @@ export const sendGroupMail = async (req, res) => {
 
     // Use BCC for group emails to improve privacy and deliverability
     const mailOptions = {
-      from: `"Elite Associate" <${process.env.GMAIL_USER || process.env.EMAIL_USER}>`,
-      to: process.env.GMAIL_USER || process.env.EMAIL_USER, // placeholder 'to' as many SMTPs require it
+      from: `"Elite Associate" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER, // placeholder 'to' as many SMTPs require it
       bcc: Array.isArray(recipients) ? recipients.join(",") : recipients,
       subject,
       html: `<p>${message}</p>`,
       text: `${message}`,
-      replyTo: process.env.GMAIL_USER || process.env.EMAIL_USER,
+      replyTo: process.env.EMAIL_USER,
       headers: {
         "X-Mailer": "EliteAssociateMailer",
-        "List-Unsubscribe": `<mailto:${process.env.GMAIL_USER || process.env.EMAIL_USER}?subject=unsubscribe>`
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=unsubscribe>`
       },
     };
 

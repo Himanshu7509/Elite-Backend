@@ -87,7 +87,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_SECURE=false
 EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_gmail_app_password
+EMAIL_PASS=your_16_character_app_password_here
 
 # For custom SMTP servers
 EMAIL_HOST=mail.yourdomain.com
@@ -97,13 +97,37 @@ EMAIL_USER=your_email@yourdomain.com
 EMAIL_PASS=your_email_password
 ```
 
-### Setting up Gmail for Production
-1. Enable 2-factor authentication on your Gmail account
+### Setting up Gmail for Production (IMPORTANT)
+1. Enable 2-factor authentication on your Gmail account:
+   - Go to https://myaccount.google.com/
+   - Click "Security" in the left sidebar
+   - Turn on "2-Step Verification"
+
 2. Generate an App Password:
-   - Go to your Google Account settings
-   - Navigate to Security > 2-Step Verification > App passwords
-   - Generate a new app password for "Mail"
-   - Use this app password as your `EMAIL_PASS`
+   - In the "Security" section, click "App passwords"
+   - Select "Mail" as the app and your device
+   - Copy the 16-character password (without spaces)
+   - Use this as your `EMAIL_PASS` value
+
+3. NEVER use your regular Gmail password - it won't work with SMTP
+
+### Common Issues and Solutions
+
+#### Connection Timeout (ETIMEDOUT)
+- This often happens on cloud platforms like Render
+- Make sure you're using an App Password, not your regular password
+- Test locally first to verify your credentials work
+
+#### Authentication Failed (EAUTH)
+- Double-check your Gmail App Password
+- Ensure 2-Factor Authentication is enabled
+- Verify the EMAIL_USER matches your Gmail address exactly
+
+#### Testing Your Configuration
+Run the test script to verify your configuration:
+```bash
+node test-gmail-connection.js
+```
 
 ### SMTP Configuration for Deployment
 The system is configured to work with various hosting environments including:
@@ -114,9 +138,9 @@ The system is configured to work with various hosting environments including:
 
 The system includes multiple fallback mechanisms:
 1. Primary SMTP configuration (Gmail recommended)
-2. Fallback to custom SMTP settings
-3. Alternative TLS settings
-4. Connection timeout handling
+2. Relaxed connection settings
+3. Alternative port configurations
+4. Different TLS settings
 
 ## Error Handling
 The system provides detailed error responses to help diagnose issues:
