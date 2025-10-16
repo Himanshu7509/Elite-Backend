@@ -7,7 +7,7 @@ import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
 import mailRouter from "./src/routes/mail.route.js";
-import notificationRouter from "./src/routes/notification.route.js";
+import mailNoticeRouter from "./src/routes/mail-notice.route.js";
 import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
 import TeamRouter from "./src/routes/team.route.js";
 
@@ -44,7 +44,7 @@ app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
 app.use('/mail',mailRouter)
-app.use('/notifications',notificationRouter);
+app.use('/mail-notice', mailNoticeRouter);
 app.use('/payment-detail', PayamentDetailRouter);
 app.use('/team', TeamRouter)
 

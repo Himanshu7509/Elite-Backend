@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-class NotificationController {
+class MailNoticeController {
   constructor() {
     this.channels = {
       email: true,
@@ -308,4 +308,4 @@ class NotificationController {
   }
 }
 
-export default NotificationController;
+export default MailNoticeController;

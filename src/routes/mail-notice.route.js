@@ -1,8 +1,8 @@
 import express from 'express';
-import NotificationController from '../controllers/notification.controller.js';
+import MailNoticeController from '../controllers/mail-notice.controller.js';
 
 const router = express.Router();
-const notificationController = new NotificationController();
+const mailNoticeController = new MailNoticeController();
 
 // Send multi-channel notification
 router.post('/send', async (req, res) => {
@@ -26,7 +26,7 @@ router.post('/send', async (req, res) => {
       fallback: fallback !== false
     };
 
-    const result = await notificationController.sendNotification(options);
+    const result = await mailNoticeController.sendNotification(options);
 
     res.status(200).json({
       success: result.totalSent > 0,
@@ -56,7 +56,7 @@ router.post('/email', async (req, res) => {
       });
     }
 
-    const result = await notificationController.sendEmail(recipient, subject, message);
+    const result = await mailNoticeController.sendEmail(recipient, subject, message);
 
     res.status(200).json({
       success: true,
@@ -86,7 +86,7 @@ router.post('/in-app', async (req, res) => {
       });
     }
 
-    const result = await notificationController.sendInAppNotification(
+    const result = await mailNoticeController.sendInAppNotification(
       userId, 
       title || 'Notification', 
       message
@@ -111,7 +111,7 @@ router.post('/in-app', async (req, res) => {
 // Get notification statistics
 router.get('/stats', async (req, res) => {
   try {
-    const stats = await notificationController.getNotificationStats();
+    const stats = await mailNoticeController.getNotificationStats();
     
     res.status(200).json({
       success: true,
@@ -149,7 +149,7 @@ router.post('/test', async (req, res) => {
       fallback: true
     };
 
-    const result = await notificationController.sendNotification(testOptions);
+    const result = await mailNoticeController.sendNotification(testOptions);
 
     res.status(200).json({
       success: result.totalSent > 0,

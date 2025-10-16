@@ -2,33 +2,67 @@ import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 dotenv.config();
 
-// Build SMTP config from env with sensible defaults and timeouts
-const smtpConfig = {
-  host: process.env.EMAIL_HOST || "mail.eliteassociate.in",
-  port: Number(process.env.EMAIL_PORT) || 587,
-  secure:
-    (process.env.EMAIL_SECURE || "").toLowerCase() === "true" ||
-    Number(process.env.EMAIL_PORT) === 465,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    // Many shared hosts use self-signed certs; avoid strict rejection
-    rejectUnauthorized: false,
-  },
-  // Connection robustness
-  connectionTimeout: Number(process.env.EMAIL_CONN_TIMEOUT) || 10000, // 10s
-  greetingTimeout: Number(process.env.EMAIL_GREET_TIMEOUT) || 10000, // 10s
-  socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT) || 10000, // 10s
-  // Enable pooling to reuse connections in rapid successive sends
-  pool: true,
-  maxConnections: Number(process.env.EMAIL_MAX_CONN) || 1,
-  maxMessages: Number(process.env.EMAIL_MAX_MSGS) || Infinity,
+// Enhanced SMTP configuration with better error handling and cloud compatibility
+const createSMTPConfig = () => {
+  // Validate required environment variables
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
+  }
+
+  // Properly handle secure setting from environment variables
+  const secureSetting = process.env.EMAIL_SECURE ? 
+    process.env.EMAIL_SECURE.toLowerCase() === 'true' : 
+    Number(process.env.EMAIL_PORT) === 465;
+
+  const smtpConfig = {
+    host: process.env.EMAIL_HOST || "mail.eliteassociate.in",
+    port: Number(process.env.EMAIL_PORT) || 587,
+    secure: secureSetting,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      // Many shared hosts use self-signed certs; avoid strict rejection
+      rejectUnauthorized: false,
+      // Additional TLS options for better compatibility
+      ciphers: 'SSLv3',
+    },
+    // Connection robustness for cloud deployments
+    connectionTimeout: Number(process.env.EMAIL_CONN_TIMEOUT) || 30000, // 30s
+    greetingTimeout: Number(process.env.EMAIL_GREET_TIMEOUT) || 30000, // 30s
+    socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT) || 30000, // 30s
+    // Enable pooling to reuse connections in rapid successive sends
+    pool: true,
+    maxConnections: Number(process.env.EMAIL_MAX_CONN) || 5,
+    maxMessages: Number(process.env.EMAIL_MAX_MSGS) || 100,
+    // Rate limiting to prevent overwhelming the SMTP server
+    rateDelta: Number(process.env.EMAIL_RATE_DELTA) || 1000, // 1 second
+    rateLimit: Number(process.env.EMAIL_RATE_LIMIT) || 5, // 5 messages per second
+  };
+
+  return smtpConfig;
 };
 
-// Define primary transporter
-const transporter = nodemailer.createTransport(smtpConfig);
+// Create transporter with error handling
+let transporter;
+try {
+  const smtpConfig = createSMTPConfig();
+  transporter = nodemailer.createTransport(smtpConfig);
+  
+  // Verify transporter configuration
+  transporter.verify((error, success) => {
+    if (error) {
+      console.warn('SMTP configuration warning:', error.message);
+      console.info('The application will continue to run but email functionality may be affected.');
+    } else {
+      console.log('SMTP server is ready to send emails');
+    }
+  });
+} catch (configError) {
+  console.error('Failed to configure SMTP transporter:', configError.message);
+  transporter = null;
+}
 
 // Helper: detect connection/timeout errors
 const isConnTimeoutError = (err) => {
@@ -38,27 +72,63 @@ const isConnTimeoutError = (err) => {
     code === "ETIMEDOUT" ||
     code === "ECONNECTION" ||
     code === "ESOCKET" ||
+    code === "ECONNREFUSED" ||
+    code === "ENOTFOUND" ||
     msg.includes("timeout") ||
     msg.includes("socket") ||
-    msg.includes("connection")
+    msg.includes("connection") ||
+    msg.includes("certificate") ||
+    msg.includes("tls") ||
+    msg.includes("ssl")
   );
 };
 
-// Common mail sending helper with retry/fallback to implicit TLS (465)
+// Enhanced mail sending helper with multiple fallback strategies
 const sendMailHelper = async (mailOptions) => {
+  if (!transporter) {
+    throw new Error('SMTP transporter is not configured. Check your environment variables.');
+  }
+
   try {
+    // First attempt with primary configuration
     return await transporter.sendMail(mailOptions);
   } catch (error) {
+    console.warn('Primary SMTP attempt failed:', error.message);
+    
     // Fallback attempt using port 465 (secure) if we hit connection/timeout errors
     if (isConnTimeoutError(error)) {
-      const fallbackConfig = {
-        ...smtpConfig,
-        port: 465,
-        secure: true,
-      };
-      const fallbackTransporter = nodemailer.createTransport(fallbackConfig);
-      return await fallbackTransporter.sendMail(mailOptions);
+      try {
+        console.log('Attempting fallback SMTP configuration on port 465...');
+        const fallbackConfig = {
+          ...createSMTPConfig(),
+          port: 465,
+          secure: true,
+        };
+        const fallbackTransporter = nodemailer.createTransport(fallbackConfig);
+        await fallbackTransporter.verify();
+        return await fallbackTransporter.sendMail(mailOptions);
+      } catch (fallbackError) {
+        console.warn('Fallback SMTP attempt failed:', fallbackError.message);
+      }
     }
+    
+    // Try with different TLS settings
+    try {
+      console.log('Attempting SMTP with alternative TLS settings...');
+      const altTLSConfig = {
+        ...createSMTPConfig(),
+        tls: {
+          rejectUnauthorized: true, // Try with strict certificate validation
+        }
+      };
+      const altTLSTransporter = nodemailer.createTransport(altTLSConfig);
+      await altTLSTransporter.verify();
+      return await altTLSTransporter.sendMail(mailOptions);
+    } catch (altTLSError) {
+      console.warn('Alternative TLS SMTP attempt failed:', altTLSError.message);
+    }
+    
+    // If all attempts fail, throw the original error
     throw error;
   }
 };
@@ -69,7 +139,10 @@ export const sendSingleMail = async (req, res) => {
     const { to, subject, message } = req.body || {};
 
     if (!to || !subject || !message) {
-      return res.status(400).json({ message: "Missing fields" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Missing required fields: to, subject, and message are required" 
+      });
     }
 
     // Enhanced professional email formatting to reduce spam classification
@@ -78,6 +151,7 @@ export const sendSingleMail = async (req, res) => {
       <html>
       <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${subject}</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -147,8 +221,8 @@ This email was sent from our CRM system. If you received this in error, please c
       success: true,
       message: "Mail sent successfully",
       id: info?.messageId,
-      accepted: info?.accepted,
-      rejected: info?.rejected,
+      accepted: info?.accepted || [],
+      rejected: info?.rejected || [],
       response: info?.response,
       envelope: info?.envelope,
     });
@@ -161,6 +235,13 @@ This email was sent from our CRM system. If you received this in error, please c
       code: error.code,
       response: error.response,
       command: error.command,
+      // Additional debugging information
+      debug: {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURE,
+        user: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : 'Not set'
+      }
     });
   }
 };
@@ -171,7 +252,10 @@ export const sendGroupMail = async (req, res) => {
     const { recipients, subject, message } = req.body || {};
 
     if (!recipients || recipients.length === 0) {
-      return res.status(400).json({ message: "Recipients are required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Recipients are required" 
+      });
     }
 
     // Use BCC for group emails to improve privacy and deliverability
@@ -198,15 +282,13 @@ export const sendGroupMail = async (req, res) => {
       messageId: info?.messageId,
     });
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Group mail sent successfully!",
-        id: info?.messageId,
-        accepted: info?.accepted,
-        rejected: info?.rejected,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Group mail sent successfully!",
+      id: info?.messageId,
+      accepted: info?.accepted || [],
+      rejected: info?.rejected || [],
+    });
   } catch (error) {
     console.error("Group Mail Error:", error);
     res.status(500).json({
@@ -216,6 +298,13 @@ export const sendGroupMail = async (req, res) => {
       code: error.code,
       response: error.response,
       command: error.command,
+      // Additional debugging information
+      debug: {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_SECURE,
+        user: process.env.EMAIL_USER ? `${process.env.EMAIL_USER.substring(0, 3)}...` : 'Not set'
+      }
     });
   }
 };
