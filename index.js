@@ -8,6 +8,7 @@ import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
 import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
 import TeamRouter from "./src/routes/team.route.js";
+import mailRouter from "./src/routes/lead-mail.route.js";
 
 dotenv.config();
 const app = express();
@@ -23,7 +24,6 @@ const corsOptions = {
     'https://www.elitebmi.in',
     'https://eliteassociate.in',
     'https://www.eliteassociate.in/',
-    'https://www.elitebmi.in',
     'https://www.elitebifs.in',
     'https://www.elitebim.in',
     'https://www.jifsacareers.com',
@@ -43,7 +43,7 @@ app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
 app.use('/payment-detail', PayamentDetailRouter);
 app.use('/team', TeamRouter)
-
+app.use('/mail', mailRouter)
 
 dbConnect();
 
