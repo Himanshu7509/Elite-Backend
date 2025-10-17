@@ -1,14 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import Form from "../models/form.model.js";
 
-// ✅ Setup mail transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ✅ Send mail to a single lead
 export const sendSingleMail = async (req, res) => {
@@ -18,8 +11,8 @@ export const sendSingleMail = async (req, res) => {
     const lead = await Form.findById(leadId);
     if (!lead) return res.status(404).json({ success: false, message: "Lead not found" });
 
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
+    await resend.emails.send({
+      from: "Elite Associate <noreply@mail.eliteassociate.in>",
       to: lead.email,
       subject,
       html: `
@@ -30,9 +23,7 @@ export const sendSingleMail = async (req, res) => {
           <p>Regards,<br>Elite Associate Team</p>
         </div>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     res.status(200).json({ success: true, message: `Mail sent to ${lead.email}` });
   } catch (error) {
@@ -53,9 +44,10 @@ export const sendGroupMail = async (req, res) => {
       return res.status(404).json({ success: false, message: "No valid leads found" });
     }
 
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      bcc: emails, // ✅ Use BCC for group privacy
+    await resend.emails.send({
+      from: "Elite Associate <noreply@mail.eliteassociate.in>",
+      to: ["me@mail.eliteassociate.in"],
+      bcc: emails, 
       subject,
       html: `
         <div style="font-family: Arial, sans-serif;">
@@ -64,9 +56,7 @@ export const sendGroupMail = async (req, res) => {
           <p>Regards,<br>Elite Associate Team</p>
         </div>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     res.status(200).json({
       success: true,
