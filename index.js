@@ -9,6 +9,8 @@ import complainFormRouter from "./src/routes/complainform.route.js";
 import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
 import TeamRouter from "./src/routes/team.route.js";
 import mailRouter from "./src/routes/lead-mail.route.js";
+import B2BRouter from "./src/routes/b2b.route.js";
+import ImageRouter from "./src/routes/image.route.js";
 
 dotenv.config();
 const app = express();
@@ -44,6 +46,8 @@ app.use('/complaint',complainFormRouter);
 app.use('/payment-detail', PayamentDetailRouter);
 app.use('/team', TeamRouter)
 app.use('/mail', mailRouter)
+app.use('/b2b', B2BRouter)
+app.use('/image', ImageRouter)
 
 dbConnect();
 
