@@ -14,9 +14,13 @@ const dbConnect = async () => {
       useUnifiedTopology: true
     });
     isConnected = conn.connections[0].readyState;
-    console.log("✅ MongoDB connected");
+    console.log("✅ MongoDB connected successfully");
+    console.log("MongoDB connection state:", mongoose.connection.readyState);
+    return conn;
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
+    console.error("Please check your MONGO_URI in .env file");
+    throw err;
   }
 };
 
