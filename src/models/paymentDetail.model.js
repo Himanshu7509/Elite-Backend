@@ -14,6 +14,21 @@ const paymentDetailSchema = new mongoose.Schema({
     type: String, 
     required: true,
   },
+  // Track who created the payment detail
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Team",
+    required: false,
+  },
+  creatorRole: {
+    type: String,
+    required: true,
+    enum: ["admin", "manager", "sales", "unknown"],
+  },
+  creatorEmail: {
+    type: String,
+    required: true,
+  },
 }, { timestamps: true });
 
 const PaymentDetail = mongoose.model("PaymentDetail", paymentDetailSchema);

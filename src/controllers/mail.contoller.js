@@ -3,8 +3,22 @@ import Form from "../models/form.model.js";
 import MailTracking from "../models/mailTracking.model.js";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Helper function to get the public URL for the signature image
+const getSignatureImageUrl = () => {
+  // In production, use the actual domain
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+  return `${baseUrl}/assets/sign.gif`;
+};
 
 // Helper function to extract message ID from Resend response
 const extractMessageId = (response) => {
@@ -23,9 +37,9 @@ const extractMessageId = (response) => {
 const normalizeLeadIds = (leadIds) => {
   if (!leadIds) return [];
   if (Array.isArray(leadIds)) return leadIds;
-  if (typeof leadIds === 'string') {
-    // Check if it's a JSON string
-    if (leadIds.startsWith('[') && leadIds.endsWith(']')) {
+  if (typeof leadIds === "string") {
+    // Check if it"s a JSON string
+    if (leadIds.startsWith("[") && leadIds.endsWith("]")) {
       try {
         const parsed = JSON.parse(leadIds);
         return Array.isArray(parsed) ? parsed : [parsed];
@@ -66,6 +80,9 @@ export const sendSingleMail = async (req, res) => {
       }
     }
 
+    // Get signature image URL
+    const signatureImageUrl = getSignatureImageUrl();
+
     // Send email with enhanced business template
     const emailResponse = await resend.emails.send({
       from: "Elite Associate <noreply@mail.eliteassociate.in>",
@@ -97,7 +114,11 @@ export const sendSingleMail = async (req, res) => {
                       <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">Hello ${lead.fullName || "Valued Customer"},</h2>
                       
                       <div style="color: #555; line-height: 1.6; font-size: 16px;">
-                        ${message.split('\n').map(paragraph => `<p style="margin: 0 0 15px 0;">${paragraph}</p>`).join('')}
+                        ${message.split("\n").map(paragraph => `<p style="margin: 0 0 15px 0;">${paragraph}</p>`).join("")}
+                      </div>
+                      
+                      <div style="margin: 30px 0 20px 0; text-align: left;">
+                        <img src="${signatureImageUrl}" alt="Director Signature" style="max-width: 200px; height: auto; display: block;" />
                       </div>
                       
                       <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
@@ -146,7 +167,7 @@ export const sendSingleMail = async (req, res) => {
           senderEmail: senderEmail,
           senderRole: senderRole,
           recipients: [lead.email],
-          recipientType: 'single',
+          recipientType: "single",
           subject: subject,
           attachments: attachmentInfo,
           leadIds: [leadId]
@@ -173,7 +194,7 @@ export const sendGroupMail = async (req, res) => {
   try {
     const { leadIds, subject, message } = req.body;
     
-    // Normalize leadIds to ensure it's always an array
+    // Normalize leadIds to ensure it"s always an array
     const leadIdsArray = normalizeLeadIds(leadIds);
     
     // Get sender information from authenticated user
@@ -204,6 +225,9 @@ export const sendGroupMail = async (req, res) => {
         });
       }
     }
+
+    // Get signature image URL
+    const signatureImageUrl = getSignatureImageUrl();
 
     // Send email with enhanced business template using BCC for privacy
     const emailResponse = await resend.emails.send({
@@ -237,7 +261,11 @@ export const sendGroupMail = async (req, res) => {
                       <h2 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">Dear Valued Customer,</h2>
                       
                       <div style="color: #555; line-height: 1.6; font-size: 16px;">
-                        ${message.split('\n').map(paragraph => `<p style="margin: 0 0 15px 0;">${paragraph}</p>`).join('')}
+                        ${message.split("\n").map(paragraph => `<p style="margin: 0 0 15px 0;">${paragraph}</p>`).join("")}
+                      </div>
+                      
+                      <div style="margin: 30px 0 20px 0; text-align: left;">
+                        <img src="${signatureImageUrl}" alt="Director Signature" style="max-width: 200px; height: auto; display: block;" />
                       </div>
                       
                       <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
@@ -252,7 +280,10 @@ export const sendGroupMail = async (req, res) => {
                   <tr>
                     <td style="padding: 30px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
                       <div style="text-align: center; color: #666; font-size: 14px;">
-                        
+                        <p style="margin: 0 0 15px 0; font-style: italic; color: #555;">
+                          Best regards,<br>
+                          <strong>Director</strong>
+                        </p>
                         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
                         <p style="margin: 0;">
                           © ${new Date().getFullYear()} Elite Associate. All rights reserved.
@@ -284,7 +315,7 @@ export const sendGroupMail = async (req, res) => {
           senderEmail: senderEmail,
           senderRole: senderRole,
           recipients: emails,
-          recipientType: 'group',
+          recipientType: "group",
           subject: subject,
           attachments: attachmentInfo,
           leadIds: leadIdsArray
@@ -327,7 +358,7 @@ export const getSentMails = async (req, res) => {
       .sort({ sentAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .populate('leadIds', 'fullName email');
+      .populate("leadIds", "fullName email");
       
     // Get total count
     const total = await MailTracking.countDocuments(filter);
@@ -355,7 +386,7 @@ export const getSentMailById = async (req, res) => {
       return res.status(500).json({ success: false, message: "Mail tracking not available" });
     }
     
-    const mail = await MailTracking.findById(id).populate('leadIds', 'fullName email');
+    const mail = await MailTracking.findById(id).populate("leadIds", "fullName email");
     
     if (!mail) {
       return res.status(404).json({ success: false, message: "Mail tracking record not found" });
@@ -376,10 +407,10 @@ export const uploadFiles = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept images and PDFs only
-    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+    if (file.mimetype.startsWith("image/") || file.mimetype === "application/pdf") {
       cb(null, true);
     } else {
-      cb(new Error('Only image files and PDFs are allowed'));
+      cb(new Error("Only image files and PDFs are allowed"));
     }
   }
 });

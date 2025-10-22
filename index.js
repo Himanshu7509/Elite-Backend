@@ -11,6 +11,12 @@ import TeamRouter from "./src/routes/team.route.js";
 import mailRouter from "./src/routes/lead-mail.route.js";
 import B2BRouter from "./src/routes/b2b.route.js";
 import ImageRouter from "./src/routes/image.route.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 const app = express();
@@ -38,6 +44,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Serve static assets
+app.use("/assets", express.static(path.join(__dirname, "src", "assets")));
 
 app.use("/auth", AuthRouter);
 app.use('/form',formRouter);
