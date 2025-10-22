@@ -190,11 +190,15 @@ export const sendSingleMail = async (req, res) => {
 };
 
 // ✅ Send mail to multiple leads (group)
+// Add this import at the top of your controller file
+import axios from 'axios';
+
+// Modify your sendGroupMail function to include URL attachment handling
 export const sendGroupMail = async (req, res) => {
   try {
     const { leadIds, subject, message } = req.body;
     
-    // Normalize leadIds to ensure it"s always an array
+    // Normalize leadIds to ensure it's always an array
     const leadIdsArray = normalizeLeadIds(leadIds);
     
     // Get sender information from authenticated user
@@ -210,9 +214,11 @@ export const sendGroupMail = async (req, res) => {
       return res.status(404).json({ success: false, message: "No valid leads found" });
     }
 
-    // Prepare attachments if any
+    // Prepare attachments - handle both uploaded files and URL-based attachments
     const attachments = [];
     const attachmentInfo = [];
+    
+    // Handle uploaded files (existing code)
     if (req.files) {
       for (const file of req.files) {
         attachments.push({
@@ -223,6 +229,43 @@ export const sendGroupMail = async (req, res) => {
           filename: file.originalname,
           size: file.size
         });
+      }
+    }
+    
+    // NEW: Handle URL-based attachments
+    const attachmentUrls = Array.isArray(req.body.attachmentUrls) ? req.body.attachmentUrls : 
+                          (req.body.attachmentUrls ? [req.body.attachmentUrls] : []);
+    const attachmentNames = Array.isArray(req.body.attachmentNames) ? req.body.attachmentNames : 
+                            (req.body.attachmentNames ? [req.body.attachmentNames] : []);
+    
+    // Download files from URLs if provided
+    if (attachmentUrls.length > 0) {
+      for (let i = 0; i < attachmentUrls.length; i++) {
+        try {
+          const url = attachmentUrls[i];
+          const name = attachmentNames[i] || `attachment-${i + 1}`;
+          
+          // Download the file
+          const response = await axios.get(url, { 
+            responseType: 'arraybuffer',
+            timeout: 10000 // 10 second timeout
+          });
+          
+          // Create attachment object
+          attachments.push({
+            filename: name,
+            content: response.data,
+          });
+          
+          // Add to attachment info
+          attachmentInfo.push({
+            filename: name,
+            size: response.data.length
+          });
+        } catch (downloadError) {
+          console.error(`Error downloading file from ${attachmentUrls[i]}:`, downloadError);
+          // Continue with other attachments even if one fails
+        }
       }
     }
 
@@ -263,10 +306,7 @@ export const sendGroupMail = async (req, res) => {
                       <div style="color: #555; line-height: 1.6; font-size: 16px;">
                         ${message.split("\n").map(paragraph => `<p style="margin: 0 0 15px 0;">${paragraph}</p>`).join("")}
                       </div>
-                      
-                      <div style="margin: 30px 0 20px 0; text-align: left;">
-                        <img src="${signatureImageUrl}" alt="Director Signature" style="max-width: 200px; height: auto; display: block;" />
-                      </div>
+                    
                       
                       <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
                         <p style="margin: 0; color: #333; font-weight: bold;">Message Details:</p>
