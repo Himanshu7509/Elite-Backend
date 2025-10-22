@@ -183,3 +183,36 @@ export const deleteImage = async (req, res) => {
     });
   }
 };
+
+// NEW: Share image via email
+export const shareImageViaEmail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { leadIds, subject, message } = req.body;
+    
+    // Find the image
+    const image = await Image.findById(id);
+    if (!image) {
+      return res.status(404).json({ success: false, message: "Image not found" });
+    }
+    
+    // Add image URL as an attachment URL to the email
+    const attachmentUrls = [image.imageUrl];
+    const attachmentNames = [`${image.name || 'shared-image'}.jpg`];
+    
+    // Add attachment data to request body
+    req.body.attachmentUrls = attachmentUrls;
+    req.body.attachmentNames = attachmentNames;
+    
+    // Import the sendGroupMail function and call it directly
+    const mailController = await import('./mail.contoller.js');
+    return await mailController.sendGroupMail(req, res);
+  } catch (error) {
+    console.error("Error sharing image via email:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to share image via email",
+      error: error.message,
+    });
+  }
+};
