@@ -1,0 +1,245 @@
+import SocialMedia from "../models/socialMedia.model.js";
+
+// Create a new social media post
+export const createSocialMediaPost = async (req, res) => {
+  try {
+    // Marketing users, managers, sales persons, and admin can create posts
+    if (!['marketing', 'manager', 'sales', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only marketing users, managers, sales persons, and admin can create social media posts." 
+      });
+    }
+
+    const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
+    
+    // Validate required fields
+    if (!productCompany || !platform || !uploadType || !date) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Product company, platform, upload type, and date are required." 
+      });
+    }
+
+    // Handle file upload for posts
+    let imageUrl = null;
+    if (uploadType === 'post' && req.file) {
+      const s3Result = await uploadFileToS3(req.file);
+      imageUrl = s3Result.Location;
+    }
+
+    // Get user details
+    let uploadedBy = null;
+    let uploadedByName = "Unknown User";
+    let uploadedByEmail = req.user.email;
+
+    if (req.user._id) {
+      // If user is from database
+      const user = await Team.findById(req.user._id);
+      if (user) {
+        uploadedBy = user._id;
+        uploadedByName = user.name;
+        uploadedByEmail = user.email;
+      }
+    } else {
+      // If user is from environment variables (admin/manager)
+      uploadedByName = req.user.role === 'admin' ? "Admin User" : "Manager User";
+    }
+
+    const newPost = new SocialMedia({
+      productCompany,
+      platform,
+      uploadType,
+      date,
+      sourceUrl: uploadType === 'reel' ? sourceUrl : null,
+      imageUrl: uploadType === 'post' ? imageUrl : null,
+      uploadedBy,
+      uploadedByName,
+      uploadedByEmail
+    });
+
+    await newPost.save();
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Social media post created successfully",
+      data: newPost 
+    });
+  } catch (error) {
+    console.error("Error creating social media post:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to create social media post",
+      error: error.message 
+    });
+  }
+};
+
+// Get all social media posts
+export const getAllSocialMediaPosts = async (req, res) => {
+  try {
+    // Marketing users, managers, sales persons, and admin can view posts
+    if (!['marketing', 'manager', 'sales', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only marketing users, managers, sales persons, and admin can view social media posts." 
+      });
+    }
+
+    const posts = await SocialMedia.find()
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ 
+      success: true, 
+      data: posts,
+      count: posts.length
+    });
+  } catch (error) {
+    console.error("Error fetching social media posts:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch social media posts",
+      error: error.message 
+    });
+  }
+};
+
+// Get social media post by ID
+export const getSocialMediaPostById = async (req, res) => {
+  try {
+    // Marketing users, managers, sales persons, and admin can view posts
+    if (!['marketing', 'manager', 'sales', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only marketing users, managers, sales persons, and admin can view social media posts." 
+      });
+    }
+
+    const { id } = req.params;
+    const post = await SocialMedia.findById(id);
+
+    if (!post) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Social media post not found" 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      data: post 
+    });
+  } catch (error) {
+    console.error("Error fetching social media post:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch social media post",
+      error: error.message 
+    });
+  }
+};
+
+// Update social media post
+export const updateSocialMediaPost = async (req, res) => {
+  try {
+    // Marketing users, managers, sales persons, and admin can update posts
+    if (!['marketing', 'manager', 'sales', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only marketing users, managers, sales persons, and admin can update social media posts." 
+      });
+    }
+
+    const { id } = req.params;
+    const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
+
+    // Find the existing post
+    const existingPost = await SocialMedia.findById(id);
+    if (!existingPost) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Social media post not found" 
+      });
+    }
+
+    // Check if the user is authorized to update this post
+    // Marketing users can only update their own posts
+    if (req.user.role === 'marketing' && existingPost.uploadedBy?.toString() !== req.user._id?.toString()) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. You can only update your own posts." 
+      });
+    }
+
+    // Handle file upload for posts
+    let imageUrl = existingPost.imageUrl;
+    if (uploadType === 'post' && req.file) {
+      const s3Result = await uploadFileToS3(req.file);
+      imageUrl = s3Result.Location;
+    }
+
+    // Prepare update data
+    const updateData = {
+      productCompany: productCompany || existingPost.productCompany,
+      platform: platform || existingPost.platform,
+      uploadType: uploadType || existingPost.uploadType,
+      date: date || existingPost.date,
+      sourceUrl: uploadType === 'reel' ? sourceUrl : existingPost.sourceUrl,
+      imageUrl: uploadType === 'post' ? imageUrl : existingPost.imageUrl
+    };
+
+    const updatedPost = await SocialMedia.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Social media post updated successfully",
+      data: updatedPost 
+    });
+  } catch (error) {
+    console.error("Error updating social media post:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update social media post",
+      error: error.message 
+    });
+  }
+};
+
+// Delete social media post (only admin can delete)
+export const deleteSocialMediaPost = async (req, res) => {
+  try {
+    // Only admin can delete posts
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only admin can delete social media posts." 
+      });
+    }
+
+    const { id } = req.params;
+    const deletedPost = await SocialMedia.findByIdAndDelete(id);
+
+    if (!deletedPost) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Social media post not found" 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Social media post deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting social media post:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to delete social media post",
+      error: error.message 
+    });
+  }
+};

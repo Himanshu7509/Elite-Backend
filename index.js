@@ -11,6 +11,7 @@ import TeamRouter from "./src/routes/team.route.js";
 import mailRouter from "./src/routes/lead-mail.route.js";
 import B2BRouter from "./src/routes/b2b.route.js";
 import ImageRouter from "./src/routes/image.route.js";
+import SocialMediaRouter from "./src/routes/socialMedia.route.js"; // Add this import
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -57,6 +58,7 @@ app.use('/team', TeamRouter)
 app.use('/mail', mailRouter)
 app.use('/b2b', B2BRouter)
 app.use('/image', ImageRouter)
+app.use('/social-media', SocialMediaRouter) // Add this route
 
 dbConnect();
 

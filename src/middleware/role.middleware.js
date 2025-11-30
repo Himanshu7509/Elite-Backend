@@ -16,7 +16,7 @@ export const isAdminOrManager = (req, res, next) => {
   next();
 };
 
-// Middleware to check if user has admin, manager, or sales role
+// Middleware to check if user has a valid role (any authenticated user)
 export const isAuthenticated = (req, res, next) => {
   if (!req.user.role) {
     return res.status(403).json({ message: "Access denied. Authentication required." });

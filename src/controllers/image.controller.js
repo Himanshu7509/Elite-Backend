@@ -1,4 +1,5 @@
 import Image from "../models/image.model.js";
+import SocialMedia from "../models/socialMedia.model.js";
 import s3 from "../config/s3.js";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
@@ -75,8 +76,34 @@ export const createImage = async (req, res) => {
 // GET: Fetch all images
 export const getAllImages = async (req, res) => {
   try {
-    const images = await Image.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: images });
+    // Get regular images
+    const regularImages = await Image.find().sort({ createdAt: -1 });
+    
+    // Get social media posts with images
+    const socialMediaPosts = await SocialMedia.find({ 
+      uploadType: 'post',
+      imageUrl: { $ne: null }
+    }).sort({ createdAt: -1 });
+    
+    // Transform social media posts to match image format
+    const socialMediaImages = socialMediaPosts.map(post => ({
+      _id: post._id,
+      name: `${post.productCompany} - ${post.platform} post`,
+      imageUrl: post.imageUrl,
+      createdBy: post.uploadedByName,
+      creatorRole: 'Social Media',
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      isSocialMedia: true // Flag to identify social media images
+    }));
+    
+    // Combine both arrays
+    const allImages = [...regularImages, ...socialMediaImages];
+    
+    // Sort by createdAt descending
+    allImages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.status(200).json({ success: true, data: allImages });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -158,7 +185,17 @@ export const deleteImage = async (req, res) => {
     const { id } = req.params;
 
     const image = await Image.findById(id);
+    
+    // Check if this is a social media image
     if (!image) {
+      // Check if it's a social media post
+      const socialMediaPost = await SocialMedia.findById(id);
+      if (socialMediaPost) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Cannot delete social media images directly. Please delete from social media section." 
+        });
+      }
       return res.status(404).json({ success: false, message: "Image not found" });
     }
 

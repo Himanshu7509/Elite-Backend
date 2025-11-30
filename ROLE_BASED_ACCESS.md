@@ -22,6 +22,13 @@ This document explains the role-based access control system implemented in the E
    - Can add new leads
    - Cannot see other sales members' leads
 
+4. **Marketing**
+   - Has the same permissions as Sales
+   - Can only see leads assigned to them
+   - Can update leads assigned to them
+   - Can add new leads
+   - Cannot see other marketing members' leads
+
 ## API Endpoints
 
 ### Authentication
@@ -31,6 +38,7 @@ This document explains the role-based access control system implemented in the E
 - `POST /team/create` - Create a new team member (Admin only)
 - `GET /team/get-all` - Get all team members (Admin and Manager only)
 - `GET /team/:id` - Get a specific team member (Admin and Manager only)
+- `PUT /team/:id` - Update a team member (Admin only)
 - `DELETE /team/:id` - Delete a team member (Admin only)
 
 ### Lead Management
@@ -65,10 +73,6 @@ ADMIN_PASSWORD=your_admin_password
 MANAGER_EMAILS=manager1@example.com,manager2@example.com
 MANAGER_PASSWORD=your_manager_password
 
-# Sales Team Credentials (multiple emails separated by commas)
-SALES_EMAILS=sales1@example.com,sales2@example.com
-SALES_PASSWORD=your_sales_password
-
 # JWT Secret
 JWT_SECRET=your_jwt_secret_key
 ```
@@ -80,8 +84,8 @@ JWT_SECRET=your_jwt_secret_key
 2. Based on the email and password combination, the system determines the user role:
    - If email matches `ADMIN_EMAIL` and password matches `ADMIN_PASSWORD`, role is "admin"
    - If email is in `MANAGER_EMAILS` and password matches `MANAGER_PASSWORD`, role is "manager"
-   - If email is in `SALES_EMAILS` and password matches `SALES_PASSWORD`, role is "sales"
-3. A JWT token is generated with the user's email and role
+   - If email and password match a team member in the database, role is determined by the team member's role
+3. A JWT token is generated with the user's email, role, and ID (for database users)
 4. The token is used in the `Authorization` header for all subsequent requests
 
 ### Authorization Middleware
@@ -92,14 +96,15 @@ JWT_SECRET=your_jwt_secret_key
 
 ## Role Permissions Summary
 
-| Action | Admin | Manager | Sales |
-|--------|-------|---------|-------|
-| Create team members | ✅ | ❌ | ❌ |
-| View all team members | ✅ | ✅ | ❌ |
-| Delete team members | ✅ | ❌ | ❌ |
-| View all leads | ✅ | ✅ | ❌ |
-| View assigned leads only | ❌ | ❌ | ✅ |
-| Assign leads | ✅ | ✅ | ❌ |
-| Update any lead | ✅ | ✅ | ❌ |
-| Update assigned leads | ✅ | ✅ | ✅ |
-| Add new leads | ✅ | ✅ | ✅ |
+| Action | Admin | Manager | Sales | Marketing |
+|--------|-------|---------|-------|-----------|
+| Create team members | ✅ | ❌ | ❌ | ❌ |
+| View all team members | ✅ | ✅ | ❌ | ❌ |
+| Update team members | ✅ | ❌ | ❌ | ❌ |
+| Delete team members | ✅ | ❌ | ❌ | ❌ |
+| View all leads | ✅ | ✅ | ❌ | ❌ |
+| View assigned leads only | ❌ | ❌ | ✅ | ✅ |
+| Assign leads | ✅ | ✅ | ❌ | ❌ |
+| Update any lead | ✅ | ✅ | ❌ | ❌ |
+| Update assigned leads | ✅ | ✅ | ✅ | ✅ |
+| Add new leads | ✅ | ✅ | ✅ | ✅ |

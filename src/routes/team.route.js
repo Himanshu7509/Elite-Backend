@@ -4,6 +4,7 @@ import {
   getAllTeamMembers,
   deleteTeamMember,
   getTeamMemberById,
+  updateTeamMember
 } from "../controllers/team.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 
@@ -12,6 +13,7 @@ const TeamRouter = express.Router();
 TeamRouter.post("/create", verifyToken, createTeamMember);
 TeamRouter.get("/get-all", verifyToken, getAllTeamMembers);
 TeamRouter.get("/:id", verifyToken, getTeamMemberById);
+TeamRouter.put("/:id", verifyToken, updateTeamMember);
 TeamRouter.delete("/:id", verifyToken, deleteTeamMember);
 
 export default TeamRouter;

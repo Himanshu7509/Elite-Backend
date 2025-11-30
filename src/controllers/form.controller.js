@@ -25,8 +25,8 @@ export const createForm = async (req, res) => {
           creatorInfo.userId = teamMember._id;
           creatorInfo.name = teamMember.name;
           
-          // If a sales person is creating a lead, automatically assign it to them
-          if (req.user.role === "sales") {
+          // If a sales or marketing person is creating a lead, automatically assign it to them
+          if (req.user.role === "sales" || req.user.role === "marketing") {
             formData.assignedTo = teamMember._id;
             formData.assignedBy = teamMember._id;
             formData.assignedByName = teamMember.name;
@@ -51,8 +51,8 @@ export const createForm = async (req, res) => {
     const newForm = new Form(formData);
     const savedForm = await newForm.save();
     
-    // If this is a sales person's lead, update their assigned leads
-    if (req.user && req.user.role === "sales" && req.user._id) {
+    // If this is a sales or marketing person's lead, update their assigned leads
+    if (req.user && (req.user.role === "sales" || req.user.role === "marketing") && req.user._id) {
       const teamMember = await Team.findById(req.user._id);
       if (teamMember) {
         await Team.findByIdAndUpdate(teamMember._id, {
@@ -76,21 +76,21 @@ export const getForms = async (req, res) => {
     if (user.role === "admin" || user.role === "manager") {
       // Admin and manager can see all leads
       filter = {};
-    } else if (user.role === "sales") {
-      // Sales can see:
+    } else if (user.role === "sales" || user.role === "marketing") {
+      // Sales and Marketing can see:
       // 1. Leads assigned to them
       // 2. Unassigned leads (not assigned to anyone)
-      // But NOT leads assigned to other sales persons
+      // But NOT leads assigned to other sales or marketing persons
       const teamMember = await Team.findOne({ email: user.email });
 
       if (!teamMember) {
-        return res.status(404).json({ message: "Sales team member not found" });
+        return res.status(404).json({ message: "Sales or Marketing team member not found" });
       }
 
       // Filter to show leads assigned to this member OR unassigned leads
       filter = {
         $or: [
-          { assignedTo: teamMember._id }, // Leads assigned to this sales person
+          { assignedTo: teamMember._id }, // Leads assigned to this sales or marketing person
           { assignedTo: null } // Unassigned leads
         ]
       };
@@ -150,7 +150,7 @@ export const getUnassignedForms = async (req, res) => {
   }
 };
 
-// ✅ Get leads assigned to a specific sales member - for admin and manager
+// ✅ Get leads assigned to a specific sales or marketing member - for admin and manager
 export const getAssignedForms = async (req, res) => {
   try {
     // Only admin and manager can see assigned leads
@@ -183,8 +183,8 @@ export const updateFormDetails = async (req, res) => {
       return res.status(404).json({ message: "Form not found" });
     }
 
-    // For sales, they can only update forms assigned to them
-    if (req.user.role === "sales") {
+    // For sales and marketing, they can only update forms assigned to them
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
@@ -219,8 +219,8 @@ export const markAsRead = async (req, res) => {
       return res.status(404).json({ message: "Form not found" });
     }
 
-    // For sales, they can only mark forms assigned to them as read
-    if (req.user.role === "sales") {
+    // For sales and marketing, they can only mark forms assigned to them as read
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only mark leads assigned to you as read." });
@@ -255,8 +255,8 @@ export const updateStatus = async (req, res) => {
       return res.status(404).json({ message: "Form not found" });
     }
 
-    // For sales, they can only update status of forms assigned to them
-    if (req.user.role === "sales") {
+    // For sales and marketing, they can only update status of forms assigned to them
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update status of leads assigned to you." });
@@ -374,7 +374,7 @@ export const deleteLead = async (req, res) => {
       return res.status(404).json({ message: "Lead not found" });
     }
 
-    // If the lead is assigned to a sales person, remove it from their assigned leads
+    // If the lead is assigned to a sales or marketing person, remove it from their assigned leads
     if (form.assignedTo) {
       await Team.findByIdAndUpdate(form.assignedTo, {
         $pull: { assignedLeads: form._id },

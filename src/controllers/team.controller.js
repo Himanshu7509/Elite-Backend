@@ -61,6 +61,42 @@ export const getAllTeamMembers = async (req, res) => {
   }
 };
 
+// Update a team member
+export const updateTeamMember = async (req, res) => {
+  try {
+    // Only admin can update team members
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Only admin can update team members." });
+    }
+
+    const { id } = req.params;
+    const { name, email, password, role } = req.body;
+
+    // Prepare update data
+    const updateData = { name, email, role };
+
+    // If password is provided, hash it
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    // Update the team member
+    const updatedMember = await Team.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!updatedMember) {
+      return res.status(404).json({ message: "Team member not found" });
+    }
+
+    res.status(200).json({ success: true, data: updatedMember });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Delete a team member
 export const deleteTeamMember = async (req, res) => {
   try {
