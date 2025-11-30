@@ -1,4 +1,6 @@
 import SocialMedia from "../models/socialMedia.model.js";
+import Team from "../models/team.model.js";
+import { uploadFileToS3 } from "../utils/s3Upload.js";
 
 // Create a new social media post
 export const createSocialMediaPost = async (req, res) => {
@@ -18,6 +20,15 @@ export const createSocialMediaPost = async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: "Product company, platform, upload type, and date are required." 
+      });
+    }
+
+    // Validate and parse date
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid date format." 
       });
     }
 
@@ -50,7 +61,7 @@ export const createSocialMediaPost = async (req, res) => {
       productCompany,
       platform,
       uploadType,
-      date,
+      date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : null,
       imageUrl: uploadType === 'post' ? imageUrl : null,
       uploadedBy,
@@ -171,6 +182,18 @@ export const updateSocialMediaPost = async (req, res) => {
       });
     }
 
+    // Validate and parse date if provided
+    let parsedDate = existingPost.date;
+    if (date) {
+      parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid date format." 
+        });
+      }
+    }
+
     // Handle file upload for posts
     let imageUrl = existingPost.imageUrl;
     if (uploadType === 'post' && req.file) {
@@ -183,7 +206,7 @@ export const updateSocialMediaPost = async (req, res) => {
       productCompany: productCompany || existingPost.productCompany,
       platform: platform || existingPost.platform,
       uploadType: uploadType || existingPost.uploadType,
-      date: date || existingPost.date,
+      date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : existingPost.sourceUrl,
       imageUrl: uploadType === 'post' ? imageUrl : existingPost.imageUrl
     };
