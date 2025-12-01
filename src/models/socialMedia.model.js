@@ -4,7 +4,7 @@ const socialMediaSchema = new mongoose.Schema({
   productCompany: {
     type: String,
     required: true,
-    enum: ['jifsa', 'elite-bim', 'elite-bifs', 'eeet-technologies', 'elite-jobs', 'elite-cards']
+    enum: ['JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards']
   },
   platforms: {
     type: [String],
