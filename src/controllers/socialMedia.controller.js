@@ -13,18 +13,31 @@ export const createSocialMediaPost = async (req, res) => {
       });
     }
 
-    const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, platforms, uploadType, date, sourceUrl } = req.body;
     
     // Log incoming request data for debugging
-    console.log("Incoming request data:", { productCompany, platform, uploadType, date, sourceUrl });
+    console.log("Incoming request data:", { productCompany, platforms, uploadType, date, sourceUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
     // Validate required fields
-    if (!productCompany || !platform || !uploadType || !date) {
+    if (!productCompany || !platforms || !uploadType || !date) {
       return res.status(400).json({ 
         success: false, 
-        message: "Product company, platform, upload type, and date are required." 
+        message: "Product company, platforms, upload type, and date are required." 
+      });
+    }
+
+    // Validate platforms is an array
+    let platformArray = [];
+    if (typeof platforms === 'string') {
+      platformArray = [platforms];
+    } else if (Array.isArray(platforms)) {
+      platformArray = platforms;
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Platforms must be a string or array of strings." 
       });
     }
 
@@ -82,7 +95,7 @@ export const createSocialMediaPost = async (req, res) => {
 
     const newPost = new SocialMedia({
       productCompany,
-      platform,
+      platforms: platformArray,
       uploadType,
       date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : null,
@@ -186,11 +199,11 @@ export const updateSocialMediaPost = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, platforms, uploadType, date, sourceUrl } = req.body;
 
     // Log incoming request data for debugging
     console.log("Updating post with ID:", id);
-    console.log("Incoming update data:", { productCompany, platform, uploadType, date, sourceUrl });
+    console.log("Incoming update data:", { productCompany, platforms, uploadType, date, sourceUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
@@ -211,6 +224,21 @@ export const updateSocialMediaPost = async (req, res) => {
         success: false, 
         message: "Access denied. You can only update your own posts." 
       });
+    }
+
+    // Validate platforms if provided
+    let platformArray = existingPost.platforms;
+    if (platforms) {
+      if (typeof platforms === 'string') {
+        platformArray = [platforms];
+      } else if (Array.isArray(platforms)) {
+        platformArray = platforms;
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Platforms must be a string or array of strings." 
+        });
+      }
     }
 
     // Validate and parse date if provided
@@ -246,7 +274,7 @@ export const updateSocialMediaPost = async (req, res) => {
     // Prepare update data
     const updateData = {
       productCompany: productCompany || existingPost.productCompany,
-      platform: platform || existingPost.platform,
+      platforms: platformArray,
       uploadType: uploadType || existingPost.uploadType,
       date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : existingPost.sourceUrl,
