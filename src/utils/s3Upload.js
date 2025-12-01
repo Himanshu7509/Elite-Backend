@@ -1,33 +1,38 @@
 import s3 from "../config/s3.js";
 import dotenv from "dotenv";
+import { v4 as uuidv4 } from "uuid";
+
 dotenv.config();
 
-export const uploadFileToS3 = (file) => {
-  return new Promise((resolve, reject) => {
-    // Set the S3 bucket name from environment variables
-    const bucketName = process.env.AWS_BUCKET_NAME;
-    
-    if (!bucketName) {
-      return reject(new Error("AWS_BUCKET_NAME is not defined in environment variables"));
-    }
+export const uploadFileToS3 = async (file) => {
+  // Validate required environment variables
+  const bucketName = process.env.AWS_BUCKET_NAME;
+  
+  if (!bucketName) {
+    throw new Error("AWS_BUCKET_NAME is not defined in environment variables");
+  }
 
-    // Create the S3 upload parameters
-    const params = {
-      Bucket: bucketName,
-      Key: `social-media/${Date.now()}-${file.originalname}`,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: 'public-read'
-    };
+  // Validate file
+  if (!file) {
+    throw new Error("No file provided for upload");
+  }
 
-    // Upload the file to S3
-    s3.upload(params, (err, data) => {
-      if (err) {
-        console.error("Error uploading file to S3:", err);
-        reject(err);
-      } else {
-        resolve(data);
-      }
-    });
-  });
+  // Create the S3 upload parameters without ACL
+  const fileKey = `social-media/${uuidv4()}-${file.originalname}`;
+  const params = {
+    Bucket: bucketName,
+    Key: fileKey,
+    Body: file.buffer,
+    ContentType: file.mimetype
+  };
+
+  try {
+    // Upload the file to S3 using promise()
+    const uploaded = await s3.upload(params).promise();
+    console.log("File uploaded to S3 successfully:", uploaded);
+    return uploaded;
+  } catch (error) {
+    console.error("Error uploading file to S3:", error);
+    throw error;
+  }
 };

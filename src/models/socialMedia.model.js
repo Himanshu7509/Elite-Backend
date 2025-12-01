@@ -31,7 +31,7 @@ const socialMediaSchema = new mongoose.Schema({
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Team',
-    required: true
+    required: false // Made this optional
   },
   uploadedByName: {
     type: String,

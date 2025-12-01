@@ -15,6 +15,11 @@ export const createSocialMediaPost = async (req, res) => {
 
     const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
     
+    // Log incoming request data for debugging
+    console.log("Incoming request data:", { productCompany, platform, uploadType, date, sourceUrl });
+    console.log("User data:", req.user);
+    console.log("File data:", req.file);
+
     // Validate required fields
     if (!productCompany || !platform || !uploadType || !date) {
       return res.status(400).json({ 
@@ -35,8 +40,19 @@ export const createSocialMediaPost = async (req, res) => {
     // Handle file upload for posts
     let imageUrl = null;
     if (uploadType === 'post' && req.file) {
-      const s3Result = await uploadFileToS3(req.file);
-      imageUrl = s3Result.Location;
+      try {
+        console.log("Uploading file to S3...");
+        const s3Result = await uploadFileToS3(req.file);
+        imageUrl = s3Result.Location;
+        console.log("File uploaded successfully:", imageUrl);
+      } catch (uploadError) {
+        console.error("Error uploading file to S3:", uploadError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to upload image to S3",
+          error: uploadError.message 
+        });
+      }
     }
 
     // Get user details
@@ -46,15 +62,22 @@ export const createSocialMediaPost = async (req, res) => {
 
     if (req.user._id) {
       // If user is from database
+      console.log("Fetching user from database with ID:", req.user._id);
       const user = await Team.findById(req.user._id);
       if (user) {
         uploadedBy = user._id;
         uploadedByName = user.name;
         uploadedByEmail = user.email;
+        console.log("User found:", { uploadedBy, uploadedByName, uploadedByEmail });
+      } else {
+        console.log("User not found in database");
+        // Use the name from the token if available
+        uploadedByName = req.user.name || uploadedByName;
       }
     } else {
       // If user is from environment variables (admin/manager)
       uploadedByName = req.user.role === 'admin' ? "Admin User" : "Manager User";
+      console.log("Using default user name for role:", req.user.role);
     }
 
     const newPost = new SocialMedia({
@@ -64,11 +87,12 @@ export const createSocialMediaPost = async (req, res) => {
       date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : null,
       imageUrl: uploadType === 'post' ? imageUrl : null,
-      uploadedBy,
+      uploadedBy, // This can now be null
       uploadedByName,
       uploadedByEmail
     });
 
+    console.log("Saving new post:", newPost);
     await newPost.save();
     
     res.status(201).json({ 
@@ -164,6 +188,12 @@ export const updateSocialMediaPost = async (req, res) => {
     const { id } = req.params;
     const { productCompany, platform, uploadType, date, sourceUrl } = req.body;
 
+    // Log incoming request data for debugging
+    console.log("Updating post with ID:", id);
+    console.log("Incoming update data:", { productCompany, platform, uploadType, date, sourceUrl });
+    console.log("User data:", req.user);
+    console.log("File data:", req.file);
+
     // Find the existing post
     const existingPost = await SocialMedia.findById(id);
     if (!existingPost) {
@@ -175,7 +205,8 @@ export const updateSocialMediaPost = async (req, res) => {
 
     // Check if the user is authorized to update this post
     // Marketing users can only update their own posts
-    if (req.user.role === 'marketing' && existingPost.uploadedBy?.toString() !== req.user._id?.toString()) {
+    // Skip this check if uploadedBy is null (legacy posts)
+    if (req.user.role === 'marketing' && existingPost.uploadedBy && existingPost.uploadedBy.toString() !== req.user._id?.toString()) {
       return res.status(403).json({ 
         success: false, 
         message: "Access denied. You can only update your own posts." 
@@ -197,8 +228,19 @@ export const updateSocialMediaPost = async (req, res) => {
     // Handle file upload for posts
     let imageUrl = existingPost.imageUrl;
     if (uploadType === 'post' && req.file) {
-      const s3Result = await uploadFileToS3(req.file);
-      imageUrl = s3Result.Location;
+      try {
+        console.log("Uploading new file to S3 for update...");
+        const s3Result = await uploadFileToS3(req.file);
+        imageUrl = s3Result.Location;
+        console.log("New file uploaded successfully:", imageUrl);
+      } catch (uploadError) {
+        console.error("Error uploading file to S3:", uploadError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to upload image to S3",
+          error: uploadError.message 
+        });
+      }
     }
 
     // Prepare update data
@@ -211,6 +253,7 @@ export const updateSocialMediaPost = async (req, res) => {
       imageUrl: uploadType === 'post' ? imageUrl : existingPost.imageUrl
     };
 
+    console.log("Updating post with data:", updateData);
     const updatedPost = await SocialMedia.findByIdAndUpdate(
       id,
       updateData,
