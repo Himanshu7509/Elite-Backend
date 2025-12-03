@@ -156,109 +156,143 @@ export const importCompaniesFromExcel = async (req, res) => {
     // Convert to JSON
     const jsonData = xlsx.utils.sheet_to_json(worksheet);
     
-    console.log("Excel data received:", jsonData);
+    console.log("Excel data received:", jsonData.length, "rows");
+    
+    // Log the first row to see actual column names
+    if (jsonData.length > 0) {
+      console.log("First row columns:", Object.keys(jsonData[0]));
+      console.log("First row sample:", jsonData[0]);
+    }
     
     // Process and validate data
     const companiesToInsert = [];
     const errors = [];
     
+    // Parse location (comma separated)
+    const parseLocation = (location) => {
+      if (!location) return [];
+      return location.toString()
+        .split(',')
+        .map(loc => loc.trim())
+        .filter(loc => loc.length > 0);
+    };
+    
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i];
       
-      // Log the row for debugging
-      console.log(`Processing row ${i + 1}:`, row);
-      
-      // Get the required fields using the actual column names from your Excel file
-      const jobTitle = row['Job Title'] || '';
-      const companyName = row['Company Name'] || '';
-      
-      // Basic validation - check for required fields
-      if (!jobTitle || !companyName) {
-        // Log what we found for debugging
-        errors.push(`Row ${i + 1}: Missing required fields. Found Job Title: "${jobTitle}", Company Name: "${companyName}"`);
-        continue;
+      try {
+        // Extract values using exact column names from your Excel
+        const jobTitle = row['Job Title'];
+        const companyName = row['Company Name'];
+        const jobType = row['Job Type'];
+        const location = row['Location'];
+        const experienceLevel = row['Experience Level'];
+        const salaryMin = row['Salary Min (₹)'];
+        const salaryMax = row['Salary Max (₹)'];
+        const minEducation = row['Min Education'];
+        const category = row['Category'];
+        const openings = row['Openings'];
+        const noticePeriod = row['Notice Period'];
+        const yearOfPassing = row['Year of Passing'];
+        const workType = row['Work Type'];
+        const interviewType = row['Interview Type'];
+        const companyWebsite = row['Company Website'];
+        const companyDescription = row['Company Description'];
+        const jobDescription = row['Job Description'];
+        
+        // Basic validation - check for required fields
+        if (!jobTitle || !companyName || !category) {
+          const missingFields = [];
+          if (!jobTitle) missingFields.push('Job Title');
+          if (!companyName) missingFields.push('Company Name');
+          if (!category) missingFields.push('Category');
+          
+          errors.push(`Row ${i + 2}: Missing required fields: ${missingFields.join(', ')}`);
+          continue;
+        }
+        
+        // Parse location
+        const locationArray = parseLocation(location);
+        
+        if (locationArray.length === 0) {
+          errors.push(`Row ${i + 2}: Location is required`);
+          continue;
+        }
+        
+        // Create company data object
+        const companyData = {
+          title: jobTitle.toString().trim(),
+          description: jobDescription ? jobDescription.toString().trim() : 'No description provided',
+          company: {
+            name: companyName.toString().trim(),
+            description: companyDescription ? companyDescription.toString().trim() : '',
+            website: companyWebsite ? companyWebsite.toString().trim() : ''
+          },
+          location: locationArray,
+          jobType: jobType ? jobType.toString().trim() : '',
+          experienceLevel: experienceLevel ? experienceLevel.toString().trim() : '',
+          salary: {
+            min: salaryMin ? salaryMin.toString().trim() : '',
+            max: salaryMax ? salaryMax.toString().trim() : '',
+            currency: 'INR'
+          },
+          minEducation: minEducation ? minEducation.toString().trim() : '',
+          category: category.toString().trim(),
+          numberOfOpenings: openings ? parseInt(openings) : null,
+          noticePeriod: noticePeriod ? noticePeriod.toString().trim() : '',
+          yearOfPassing: yearOfPassing ? yearOfPassing.toString().trim() : '',
+          directLink: companyWebsite ? companyWebsite.toString().trim() : '',
+          workType: workType ? workType.toString().trim() : '',
+          interviewType: interviewType ? interviewType.toString().trim() : '',
+          requirements: [],
+          responsibilities: [],
+          skills: []
+        };
+        
+        companiesToInsert.push(companyData);
+        
+      } catch (rowError) {
+        errors.push(`Row ${i + 2}: Error processing row - ${rowError.message}`);
+        console.error(`Error processing row ${i + 2}:`, rowError);
       }
-      
-      // Parse requirements and responsibilities (split by newline or comma)
-      const parseArrayField = (field) => {
-        if (!field) return [];
-        // Split by newline or comma and trim each item
-        return field.toString()
-          .split(/[\n,]+/)
-          .map(item => item.trim())
-          .filter(item => item.length > 0);
-      };
-      
-      // Parse skills (comma separated)
-      const parseSkills = (skills) => {
-        if (!skills) return [];
-        return skills.toString()
-          .split(',')
-          .map(skill => skill.trim())
-          .filter(skill => skill.length > 0);
-      };
-      
-      // Parse location (comma separated)
-      const parseLocation = (location) => {
-        if (!location) return [];
-        return location.toString()
-          .split(',')
-          .map(loc => loc.trim())
-          .filter(loc => loc.length > 0);
-      };
-      
-      // Map Excel columns to company fields using your actual column names
-      const companyData = {
-        title: jobTitle,
-        description: row['Job Description'] || '',
-        company: {
-          name: companyName,
-          description: row['Company Description'] || '',
-          website: row['Company Website'] || ''
-        },
-        // Handle location as array
-        location: parseLocation(row['Location'] || ''),
-        jobType: row['Job Type'] || '',
-        experienceLevel: row['Experience Level'] || '',
-        salary: {
-          min: row['Salary Min (₹)'] || '',
-          max: row['Salary Max (₹)'] || '',
-          currency: 'INR'
-        },
-        minEducation: row['Min Education'] || '',
-        category: row['Category'] || '',
-        numberOfOpenings: row['Openings'] ? parseInt(row['Openings']) : null,
-        noticePeriod: row['Notice Period'] || '',
-        yearOfPassing: row['Year of Passing'] || '',
-        directLink: row['Company Website'] || '', // Using company website as direct link
-        workType: row['Work Type'] || '',
-        interviewType: row['Interview Type'] || '',
-        // Handle array fields
-        requirements: parseArrayField(row['Requirements'] || ''),
-        responsibilities: parseArrayField(row['Responsibilities'] || ''),
-        skills: parseSkills(row['Skills'] || '')
-      };
-      
-      companiesToInsert.push(companyData);
     }
     
-    console.log("Companies to insert:", companiesToInsert);
+    console.log(`Processed ${jsonData.length} rows. Valid companies: ${companiesToInsert.length}, Errors: ${errors.length}`);
     
     // Insert all valid companies
-    const insertedCompanies = await Company.insertMany(companiesToInsert);
+    let insertedCompanies = [];
+    if (companiesToInsert.length > 0) {
+      try {
+        insertedCompanies = await Company.insertMany(companiesToInsert, { ordered: false });
+        console.log(`Successfully inserted ${insertedCompanies.length} companies`);
+      } catch (insertError) {
+        console.error("Error inserting companies:", insertError);
+        // If some companies were inserted before error
+        if (insertError.insertedDocs) {
+          insertedCompanies = insertError.insertedDocs;
+        }
+        errors.push(`Database insertion error: ${insertError.message}`);
+      }
+    }
     
     res.status(201).json({ 
       success: true, 
-      message: `Successfully imported ${insertedCompanies.length} companies`,
+      message: `Successfully imported ${insertedCompanies.length} companies out of ${jsonData.length} rows`,
       data: insertedCompanies,
-      errors: errors
+      errors: errors,
+      summary: {
+        totalRows: jsonData.length,
+        successful: insertedCompanies.length,
+        failed: errors.length
+      }
     });
   } catch (error) {
     console.error("Error importing companies from Excel:", error);
     res.status(500).json({ 
       success: false, 
       message: "Failed to import companies from Excel",
-      error: error.message 
+      error: error.message,
+      stack: error.stack
     });
   }
 };
