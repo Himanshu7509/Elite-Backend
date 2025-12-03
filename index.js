@@ -13,6 +13,7 @@ import B2BRouter from "./src/routes/b2b.route.js";
 import ImageRouter from "./src/routes/image.route.js";
 import SocialMediaRouter from "./src/routes/socialMedia.route.js";
 import EnrollmentRouter from "./src/routes/enrollment.route.js"; // Add this import
+import CompanyRouter from "./src/routes/company.route.js"; // Add this import
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -61,6 +62,7 @@ app.use('/b2b', B2BRouter)
 app.use('/image', ImageRouter)
 app.use('/social-media', SocialMediaRouter)
 app.use('/enrollment', EnrollmentRouter) // Add this route
+app.use('/companies', CompanyRouter) // Add this route
 
 dbConnect();
 
