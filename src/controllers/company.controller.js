@@ -156,6 +156,8 @@ export const importCompaniesFromExcel = async (req, res) => {
     // Convert to JSON
     const jsonData = xlsx.utils.sheet_to_json(worksheet);
     
+    console.log("Excel data received:", jsonData);
+    
     // Process and validate data
     const companiesToInsert = [];
     const errors = [];
@@ -163,9 +165,17 @@ export const importCompaniesFromExcel = async (req, res) => {
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i];
       
+      // Log the row for debugging
+      console.log(`Processing row ${i + 1}:`, row);
+      
+      // Get the required fields using the actual column names from your Excel file
+      const jobTitle = row['Job Title'] || '';
+      const companyName = row['Company Name'] || '';
+      
       // Basic validation - check for required fields
-      if (!row['Job Title'] || !row['Company Name']) {
-        errors.push(`Row ${i + 1}: Missing required fields (Job Title or Company Name)`);
+      if (!jobTitle || !companyName) {
+        // Log what we found for debugging
+        errors.push(`Row ${i + 1}: Missing required fields. Found Job Title: "${jobTitle}", Company Name: "${companyName}"`);
         continue;
       }
       
@@ -197,40 +207,42 @@ export const importCompaniesFromExcel = async (req, res) => {
           .filter(loc => loc.length > 0);
       };
       
-      // Map Excel columns to company fields
+      // Map Excel columns to company fields using your actual column names
       const companyData = {
-        title: row['Job Title'] || '',
+        title: jobTitle,
         description: row['Job Description'] || '',
         company: {
-          name: row['Company Name'] || '',
+          name: companyName,
           description: row['Company Description'] || '',
-          website: row['Company website'] || ''
+          website: row['Company Website'] || ''
         },
         // Handle location as array
-        location: parseLocation(row['Location: Location of Company']),
-        jobType: row['Job type (Full-time or Part-time )'] || '',
-        experienceLevel: row['Experience lever: (Fresher/1 year/2 year / N Year)'] || '',
+        location: parseLocation(row['Location'] || ''),
+        jobType: row['Job Type'] || '',
+        experienceLevel: row['Experience Level'] || '',
         salary: {
-          min: row['Salary Min:'] || '',
-          max: row['Salary Max:'] || '',
+          min: row['Salary Min (₹)'] || '',
+          max: row['Salary Max (₹)'] || '',
           currency: 'INR'
         },
-        minEducation: row['Minimum Education: B eachlore degree/ Master Degree'] || '',
-        category: row['Category: ( IT AND NETWORKING/ Sales and Marketing/ Accounting/ Data Science/ Digital Marketing/ Human Resources / Customer Service / Project Manager/other)'] || '',
-        numberOfOpenings: row['No. of openings:'] ? parseInt(row['No. of openings:']) : null,
-        noticePeriod: row['Notice Period: (Immediate Joiner/Upto N week)'] || '',
-        yearOfPassing: row['Year of Passing ( Education Year like 2025, 2024)'] || '',
-        directLink: row['Direct Link : website link of Company'] || '',
-        workType: row['Work Type : ( Remote/ On-Site/ Hybrid)'] || '',
-        interviewType: row['interview Type : (Online / On-site / Walk-In)'] || '',
+        minEducation: row['Min Education'] || '',
+        category: row['Category'] || '',
+        numberOfOpenings: row['Openings'] ? parseInt(row['Openings']) : null,
+        noticePeriod: row['Notice Period'] || '',
+        yearOfPassing: row['Year of Passing'] || '',
+        directLink: row['Company Website'] || '', // Using company website as direct link
+        workType: row['Work Type'] || '',
+        interviewType: row['Interview Type'] || '',
         // Handle array fields
-        requirements: parseArrayField(row['Requirements :']),
-        responsibilities: parseArrayField(row['Responsibility not more than 7 words in one line']),
-        skills: parseSkills(row['Skills: Comma Separated'])
+        requirements: parseArrayField(row['Requirements'] || ''),
+        responsibilities: parseArrayField(row['Responsibilities'] || ''),
+        skills: parseSkills(row['Skills'] || '')
       };
       
       companiesToInsert.push(companyData);
     }
+    
+    console.log("Companies to insert:", companiesToInsert);
     
     // Insert all valid companies
     const insertedCompanies = await Company.insertMany(companiesToInsert);
