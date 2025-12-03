@@ -138,6 +138,35 @@ export const deleteCompany = async (req, res) => {
   }
 };
 
+// Helper function to normalize column names (remove extra spaces, special chars)
+const normalizeColumnName = (name) => {
+  return name.toString().trim().replace(/\s+/g, ' ');
+};
+
+// Helper function to find value by trying different column name variations
+const findColumnValue = (row, ...possibleNames) => {
+  // First try exact match
+  for (const name of possibleNames) {
+    if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
+      return row[name];
+    }
+  }
+  
+  // If not found, try normalized matching
+  const rowKeys = Object.keys(row);
+  for (const name of possibleNames) {
+    const normalizedSearch = normalizeColumnName(name).toLowerCase();
+    for (const key of rowKeys) {
+      const normalizedKey = normalizeColumnName(key).toLowerCase();
+      if (normalizedKey === normalizedSearch) {
+        return row[key];
+      }
+    }
+  }
+  
+  return null;
+};
+
 // Import companies from Excel file
 export const importCompaniesFromExcel = async (req, res) => {
   try {
@@ -148,21 +177,35 @@ export const importCompaniesFromExcel = async (req, res) => {
       });
     }
 
-    // Read the Excel file
-    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    // Read the Excel file with options to handle various formats
+    const workbook = xlsx.read(req.file.buffer, { 
+      type: 'buffer',
+      cellDates: true,
+      cellText: false
+    });
+    
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    // Convert to JSON
-    const jsonData = xlsx.utils.sheet_to_json(worksheet);
+    // Convert to JSON with defval to handle empty cells
+    const jsonData = xlsx.utils.sheet_to_json(worksheet, { defval: "" });
     
-    console.log("Excel data received:", jsonData.length, "rows");
+    console.log("===========================================");
+    console.log("Excel Import Debug Information");
+    console.log("===========================================");
+    console.log("Total rows found:", jsonData.length);
     
-    // Log the first row to see actual column names
     if (jsonData.length > 0) {
-      console.log("First row columns:", Object.keys(jsonData[0]));
-      console.log("First row sample:", jsonData[0]);
+      const columns = Object.keys(jsonData[0]);
+      console.log("\nActual column names found:");
+      columns.forEach((col, index) => {
+        console.log(`  ${index + 1}. "${col}" (length: ${col.length})`);
+      });
+      
+      console.log("\nFirst row data sample:");
+      console.log(JSON.stringify(jsonData[0], null, 2));
     }
+    console.log("===========================================\n");
     
     // Process and validate data
     const companiesToInsert = [];
@@ -181,26 +224,33 @@ export const importCompaniesFromExcel = async (req, res) => {
       const row = jsonData[i];
       
       try {
-        // Extract values using exact column names from your Excel
-        const jobTitle = row['Job Title'];
-        const companyName = row['Company Name'];
-        const jobType = row['Job Type'];
-        const location = row['Location'];
-        const experienceLevel = row['Experience Level'];
-        const salaryMin = row['Salary Min (₹)'];
-        const salaryMax = row['Salary Max (₹)'];
-        const minEducation = row['Min Education'];
-        const category = row['Category'];
-        const openings = row['Openings'];
-        const noticePeriod = row['Notice Period'];
-        const yearOfPassing = row['Year of Passing'];
-        const workType = row['Work Type'];
-        const interviewType = row['Interview Type'];
-        const companyWebsite = row['Company Website'];
-        const companyDescription = row['Company Description'];
-        const jobDescription = row['Job Description'];
+        // Try to find values with multiple possible column name variations
+        const jobTitle = findColumnValue(row, 
+          'Job Title', 'job title', 'JobTitle', 'Title', 'Position'
+        );
         
-        // Basic validation - check for required fields
+        const companyName = findColumnValue(row,
+          'Company Name', 'company name', 'CompanyName', 'Company'
+        );
+        
+        const category = findColumnValue(row,
+          'Category', 'category', 'Job Category', 'job category'
+        );
+        
+        const location = findColumnValue(row,
+          'Location', 'location', 'Locations', 'City'
+        );
+        
+        // Debug log for first row
+        if (i === 0) {
+          console.log("Extracted values from first row:");
+          console.log("  Job Title:", jobTitle);
+          console.log("  Company Name:", companyName);
+          console.log("  Category:", category);
+          console.log("  Location:", location);
+        }
+        
+        // Basic validation
         if (!jobTitle || !companyName || !category) {
           const missingFields = [];
           if (!jobTitle) missingFields.push('Job Title');
@@ -218,6 +268,21 @@ export const importCompaniesFromExcel = async (req, res) => {
           errors.push(`Row ${i + 2}: Location is required`);
           continue;
         }
+        
+        // Extract other fields
+        const jobType = findColumnValue(row, 'Job Type', 'job type', 'JobType');
+        const experienceLevel = findColumnValue(row, 'Experience Level', 'experience level', 'Experience');
+        const salaryMin = findColumnValue(row, 'Salary Min (₹)', 'Salary Min', 'salary min');
+        const salaryMax = findColumnValue(row, 'Salary Max (₹)', 'Salary Max', 'salary max');
+        const minEducation = findColumnValue(row, 'Min Education', 'min education', 'Education');
+        const openings = findColumnValue(row, 'Openings', 'openings', 'Number of Openings');
+        const noticePeriod = findColumnValue(row, 'Notice Period', 'notice period', 'NoticePeriod');
+        const yearOfPassing = findColumnValue(row, 'Year of Passing', 'year of passing', 'Passing Year');
+        const workType = findColumnValue(row, 'Work Type', 'work type', 'WorkType');
+        const interviewType = findColumnValue(row, 'Interview Type', 'interview type', 'InterviewType');
+        const companyWebsite = findColumnValue(row, 'Company Website', 'company website', 'Website');
+        const companyDescription = findColumnValue(row, 'Company Description', 'company description');
+        const jobDescription = findColumnValue(row, 'Job Description', 'job description', 'Description');
         
         // Create company data object
         const companyData = {
@@ -257,17 +322,19 @@ export const importCompaniesFromExcel = async (req, res) => {
       }
     }
     
-    console.log(`Processed ${jsonData.length} rows. Valid companies: ${companiesToInsert.length}, Errors: ${errors.length}`);
+    console.log(`\nProcessing Summary:`);
+    console.log(`  Total rows: ${jsonData.length}`);
+    console.log(`  Valid companies: ${companiesToInsert.length}`);
+    console.log(`  Errors: ${errors.length}`);
     
     // Insert all valid companies
     let insertedCompanies = [];
     if (companiesToInsert.length > 0) {
       try {
         insertedCompanies = await Company.insertMany(companiesToInsert, { ordered: false });
-        console.log(`Successfully inserted ${insertedCompanies.length} companies`);
+        console.log(`Successfully inserted ${insertedCompanies.length} companies into database`);
       } catch (insertError) {
         console.error("Error inserting companies:", insertError);
-        // If some companies were inserted before error
         if (insertError.insertedDocs) {
           insertedCompanies = insertError.insertedDocs;
         }
