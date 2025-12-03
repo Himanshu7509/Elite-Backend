@@ -4,6 +4,7 @@ import {
   getAllEnrollments, 
   getEnrollmentById, 
   updateEnrollmentStatus, 
+  updateEnrollmentDetails,
   deleteEnrollment 
 } from "../controllers/enrollment.controller.js";
 
@@ -20,6 +21,9 @@ router.get("/:id", getEnrollmentById);
 
 // Update enrollment status
 router.patch("/:id/status", updateEnrollmentStatus);
+
+// Update enrollment details
+router.patch("/:id/details", updateEnrollmentDetails);
 
 // Delete enrollment
 router.delete("/:id", deleteEnrollment);

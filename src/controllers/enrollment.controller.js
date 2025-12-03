@@ -164,3 +164,44 @@ export const deleteEnrollment = async (req, res) => {
     });
   }
 };
+
+// Update enrollment details
+export const updateEnrollmentDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { age, gender, location, qualification } = req.body;
+
+    // Build update object with only provided fields
+    const updateData = {};
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = gender;
+    if (location !== undefined) updateData.location = location;
+    if (qualification !== undefined) updateData.qualification = qualification;
+
+    const enrollment = await Enrollment.findByIdAndUpdate(
+      id, 
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!enrollment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Enrollment not found" 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Enrollment details updated successfully",
+      data: enrollment 
+    });
+  } catch (error) {
+    console.error("Error updating enrollment details:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update enrollment details",
+      error: error.message 
+    });
+  }
+};

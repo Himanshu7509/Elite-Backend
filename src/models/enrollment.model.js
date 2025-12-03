@@ -34,6 +34,22 @@ const enrollmentSchema = new mongoose.Schema({
   enrolledAt: {
     type: Date,
     default: Date.now
+  },
+  age: {
+    type: Number,
+    required: false
+  },
+  gender: {
+    type: String,
+    required: false
+  },
+  location: {
+    type: String,
+    required: false
+  },
+  qualification: {
+    type: String,
+    required: false
   }
 }, { 
   timestamps: true 
