@@ -3,7 +3,15 @@ import { importCompanies, getAllCompanies } from "../controllers/company.control
 import multer from "multer";
 
 const router = express.Router();
-const upload = multer();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // For JSON data
 router.post("/import", upload.none(), importCompanies);

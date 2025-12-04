@@ -41,9 +41,6 @@ export const importCompanies = async (req, res) => {
       });
     }
 
-    // Optional: Clear old data
-    // await Company.deleteMany({});
-
     // Insert new data
     const result = await Company.insertMany(companiesData);
 
