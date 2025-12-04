@@ -1,32 +1,16 @@
 import express from "express";
-import { 
-  createCompany, 
-  getAllCompanies, 
-  getCompanyById, 
-  updateCompany, 
-  deleteCompany,
-  importCompaniesFromExcel,
-  upload
-} from "../controllers/company.controller.js";
+import { importCompanies, getAllCompanies } from "../controllers/company.controller.js";
+import multer from "multer";
 
 const router = express.Router();
+const upload = multer();
 
-// Create a new company
-router.post("/create", createCompany);
+// For JSON data
+router.post("/import", upload.none(), importCompanies);
 
-// Get all companies
-router.get("/get-all", getAllCompanies);
+// For file uploads
+router.post("/import/file", upload.single('file'), importCompanies);
 
-// Get company by ID
-router.get("/:id", getCompanyById);
-
-// Update company
-router.put("/:id", updateCompany);
-
-// Delete company
-router.delete("/:id", deleteCompany);
-
-// Import companies from Excel
-router.post("/import", upload.single('excelFile'), importCompaniesFromExcel);
+router.get("/all", getAllCompanies);
 
 export default router;

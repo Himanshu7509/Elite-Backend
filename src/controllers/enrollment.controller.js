@@ -3,7 +3,7 @@ import Enrollment from "../models/enrollment.model.js";
 // Create a new enrollment
 export const createEnrollment = async (req, res) => {
   try {
-    const { studentName, studentEmail, studentPhone, courseName, message, productCompany } = req.body;
+    const { studentName, studentEmail, studentPhone, courseName, message, productCompany, age, gender, location, qualification } = req.body;
 
     // Validate required fields
     if (!studentName || !studentEmail || !courseName || !productCompany) {
@@ -28,7 +28,11 @@ export const createEnrollment = async (req, res) => {
       studentPhone: studentPhone || null,
       courseName,
       message: message || null,
-      productCompany
+      productCompany,
+      age: age || null,
+      gender: gender || null,
+      location: location || null,
+      qualification: qualification || null
     });
 
     await newEnrollment.save();
