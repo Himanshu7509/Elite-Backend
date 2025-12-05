@@ -41,8 +41,30 @@ export const importCompanies = async (req, res) => {
       });
     }
 
+    // Filter out empty or invalid records
+    const validCompaniesData = companiesData.filter(company => {
+      // Check if the company object has meaningful data
+      // (more than just default fields like _id, __v, createdAt, updatedAt)
+      const keys = Object.keys(company);
+      const meaningfulKeys = keys.filter(key => 
+        !['_id', '__v', 'createdAt', 'updatedAt'].includes(key) && 
+        company[key] !== null && 
+        company[key] !== undefined &&
+        company[key] !== ''
+      );
+      
+      return meaningfulKeys.length > 0;
+    });
+
+    if (validCompaniesData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid company data found. All records appear to be empty."
+      });
+    }
+
     // Insert new data
-    const result = await Company.insertMany(companiesData);
+    const result = await Company.insertMany(validCompaniesData);
 
     res.status(201).json({
       success: true,
@@ -82,7 +104,21 @@ export const importCompanies = async (req, res) => {
 // Get all companies
 export const getAllCompanies = async (req, res) => {
   try {
-    const companies = await Company.find().sort({ createdAt: -1 });
+    // Find all companies and filter out empty records
+    const allCompanies = await Company.find().sort({ createdAt: -1 });
+    
+    // Filter out empty records (those with only default fields)
+    const companies = allCompanies.filter(company => {
+      const keys = Object.keys(company.toObject());
+      const meaningfulKeys = keys.filter(key => 
+        !['_id', '__v', 'createdAt', 'updatedAt'].includes(key) && 
+        company[key] !== null && 
+        company[key] !== undefined &&
+        company[key] !== ''
+      );
+      
+      return meaningfulKeys.length > 0;
+    });
 
     res.status(200).json({
       success: true,
@@ -182,6 +218,26 @@ export const deleteCompany = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to delete company",
+      error: error.message
+    });
+  }
+};
+
+// Delete all companies
+export const deleteAllCompanies = async (req, res) => {
+  try {
+    const deleteResult = await Company.deleteMany({});
+    
+    res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} companies`,
+      deletedCount: deleteResult.deletedCount
+    });
+  } catch (error) {
+    console.error("Error deleting companies:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete companies",
       error: error.message
     });
   }
