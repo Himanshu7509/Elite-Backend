@@ -1,5 +1,5 @@
 import express from "express";
-import { importCompanies, getAllCompanies, deleteAllCompanies } from "../controllers/company.controller.js";
+import { importCompanies, getAllCompanies, deleteAllCompanies, deleteCompany, updateCompany } from "../controllers/company.controller.js";
 import multer from "multer";
 
 const router = express.Router();
@@ -23,5 +23,11 @@ router.get("/all", getAllCompanies);
 
 // Add the new delete all endpoint
 router.delete("/all", deleteAllCompanies);
+
+// Add delete single company endpoint
+router.delete("/:id", deleteCompany);
+
+// Add update company endpoint
+router.put("/:id", updateCompany);
 
 export default router;
