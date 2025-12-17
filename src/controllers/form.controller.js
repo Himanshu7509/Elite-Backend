@@ -76,21 +76,24 @@ export const getForms = async (req, res) => {
     if (user.role === "admin" || user.role === "manager") {
       // Admin and manager can see all leads
       filter = {};
-    } else if (user.role === "sales" || user.role === "marketing" || user.role === "counsellor" || user.role === "telecaller") {
-      // Sales, Marketing, Counsellor and Telecaller can see:
+    } else if (user.role === "counsellor" || user.role === "telecaller") {
+      // Counsellor and Telecaller can see all leads
+      filter = {};
+    } else if (user.role === "sales" || user.role === "marketing") {
+      // Sales and Marketing can see:
       // 1. Leads assigned to them
       // 2. Unassigned leads (not assigned to anyone)
-      // But NOT leads assigned to other sales, marketing, counsellor or telecaller persons
+      // But NOT leads assigned to other sales or marketing persons
       const teamMember = await Team.findOne({ email: user.email });
 
       if (!teamMember) {
-        return res.status(404).json({ message: "Sales, Marketing, Counsellor or Telecaller team member not found" });
+        return res.status(404).json({ message: "Sales or Marketing team member not found" });
       }
 
       // Filter to show leads assigned to this member OR unassigned leads
       filter = {
         $or: [
-          { assignedTo: teamMember._id }, // Leads assigned to this sales, marketing, counsellor or telecaller person
+          { assignedTo: teamMember._id }, // Leads assigned to this sales or marketing person
           { assignedTo: null } // Unassigned leads
         ]
       };
@@ -184,7 +187,8 @@ export const updateFormDetails = async (req, res) => {
     }
 
     // For sales and marketing, they can only update forms assigned to them
-    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
+    // Counselors and telecallers can update any form
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
@@ -242,7 +246,8 @@ export const markAsRead = async (req, res) => {
     }
 
     // For sales and marketing, they can only mark forms assigned to them as read
-    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
+    // Counselors and telecallers can mark any form as read
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only mark leads assigned to you as read." });
@@ -303,7 +308,8 @@ export const updateStatus = async (req, res) => {
     }
 
     // For sales and marketing, they can only update status of forms assigned to them
-    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
+    // Counselors and telecallers can update status of any form
+    if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update status of leads assigned to you." });
@@ -344,9 +350,9 @@ export const updateStatus = async (req, res) => {
 
 export const assignLead = async (req, res) => {
   try {
-    // Only admin and manager can assign leads
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
-      return res.status(403).json({ message: "Access denied. Only admin or manager can assign leads." });
+    // Admin, manager, counselor, and telecaller can assign leads
+    if (req.user.role !== "admin" && req.user.role !== "manager" && req.user.role !== "counsellor" && req.user.role !== "telecaller") {
+      return res.status(403).json({ message: "Access denied. Only admin, manager, counselor, or telecaller can assign leads." });
     }
 
     const { id } = req.params; // Lead ID
