@@ -35,6 +35,48 @@ const formSchema = new mongoose.Schema(
       enum: ["unread", "read", "interested", "not_interested"],
       default: "unread",
     },
+    
+    // New CRM fields
+    callStatus: {
+      type: String,
+      enum: ["not_called", "called", "follow_up_required", "not_reachable"],
+      default: "not_called"
+    },
+    interviewRoundStatus: {
+      type: String,
+      enum: ["not_scheduled", "scheduled", "completed", "rescheduled", "cancelled"],
+      default: "not_scheduled"
+    },
+    aptitudeRoundStatus: {
+      type: String,
+      enum: ["not_scheduled", "scheduled", "completed", "rescheduled", "cancelled", "passed", "failed"],
+      default: "not_scheduled"
+    },
+    hrRoundStatus: {
+      type: String,
+      enum: ["not_scheduled", "scheduled", "completed", "rescheduled", "cancelled", "passed", "failed"],
+      default: "not_scheduled"
+    },
+    admissionLetter: {
+      type: String,
+      enum: ["not_issued", "issued", "received"],
+      default: "not_issued"
+    },
+    feesStatus: {
+      type: String,
+      enum: ["not_paid", "partially_paid", "fully_paid"],
+      default: "not_paid"
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["UPI", "cash", "bank_transfer", "cheque", "other"],
+      default: "other"
+    },
+    feesInstallmentStructure: {
+      type: String,
+      enum: ["one_time", "two_installments", "three_installments", "four_installments", "other"],
+      default: "one_time"
+    },
 
     // Tracking fields
     createdBy: { 
@@ -46,9 +88,18 @@ const formSchema = new mongoose.Schema(
       },
       default: null 
     },
+    updatedBy: { 
+      type: {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+        email: { type: String },
+        role: { type: String },
+        name: { type: String }
+      },
+      default: null 
+    },
     source: { 
       type: String, 
-      enum: ["website", "admin", "manager", "sales", "other"],
+      enum: ["website", "admin", "manager", "sales", "marketing", "counsellor", "telecaller", "other"],
       default: "other" 
     },
 

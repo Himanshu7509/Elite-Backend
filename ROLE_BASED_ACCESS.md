@@ -29,6 +29,20 @@ This document explains the role-based access control system implemented in the E
    - Can add new leads
    - Cannot see other marketing members' leads
 
+5. **Counsellor**
+   - Has the same permissions as Sales and Marketing
+   - Can only see leads assigned to them
+   - Can update leads assigned to them
+   - Can add new leads
+   - Cannot see other counsellor members' leads
+
+6. **Telecaller**
+   - Has the same permissions as Sales and Marketing
+   - Can only see leads assigned to them
+   - Can update leads assigned to them
+   - Can add new leads
+   - Cannot see other telecaller members' leads
+
 ## API Endpoints
 
 ### Authentication
@@ -45,19 +59,19 @@ This document explains the role-based access control system implemented in the E
 - `POST /form/create-form` - Create a new lead (All authenticated users)
 - `GET /form/read-form` - Get leads based on user role:
   - Admin/Manager: All leads
-  - Sales: Only leads assigned to them
+  - Sales/Marketing/Counsellor/Telecaller: Only leads assigned to them
 - `GET /form/read-all-forms` - Get all leads (Admin and Manager only)
 - `GET /form/unassigned` - Get unassigned leads (Admin and Manager only)
 - `GET /form/assigned/:salesId` - Get leads assigned to a specific sales member (Admin and Manager only)
 - `PATCH /form/update/:id` - Update lead details:
   - Admin/Manager: Any lead
-  - Sales: Only leads assigned to them
+  - Sales/Marketing/Counsellor/Telecaller: Only leads assigned to them
 - `PATCH /form/:id/read` - Mark lead as read:
   - Admin/Manager: Any lead
-  - Sales: Only leads assigned to them
+  - Sales/Marketing/Counsellor/Telecaller: Only leads assigned to them
 - `PATCH /form/:id/status` - Update lead status:
   - Admin/Manager: Any lead
-  - Sales: Only leads assigned to them
+  - Sales/Marketing/Counsellor/Telecaller: Only leads assigned to them
 - `PATCH /form/:id/assign` - Assign lead to a team member (Admin and Manager only)
 
 ## Environment Variables
@@ -96,15 +110,15 @@ JWT_SECRET=your_jwt_secret_key
 
 ## Role Permissions Summary
 
-| Action | Admin | Manager | Sales | Marketing |
-|--------|-------|---------|-------|-----------|
-| Create team members | ✅ | ❌ | ❌ | ❌ |
-| View all team members | ✅ | ✅ | ❌ | ❌ |
-| Update team members | ✅ | ❌ | ❌ | ❌ |
-| Delete team members | ✅ | ❌ | ❌ | ❌ |
-| View all leads | ✅ | ✅ | ❌ | ❌ |
-| View assigned leads only | ❌ | ❌ | ✅ | ✅ |
-| Assign leads | ✅ | ✅ | ❌ | ❌ |
-| Update any lead | ✅ | ✅ | ❌ | ❌ |
-| Update assigned leads | ✅ | ✅ | ✅ | ✅ |
-| Add new leads | ✅ | ✅ | ✅ | ✅ |
+| Action | Admin | Manager | Sales | Marketing | Counsellor | Telecaller |
+|--------|-------|---------|-------|-----------|------------|------------|
+| Create team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View all team members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Update team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Delete team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View all leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View assigned leads only | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Assign leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Update any lead | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Update assigned leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Add new leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |

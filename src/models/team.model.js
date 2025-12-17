@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const teamSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, default: "sales" }, // can be "admin", "manager", "sales", "marketing"
+  role: { type: String, default: "sales" }, // can be "admin", "manager", "sales", "marketing", "counsellor", "telecaller"
   password: { type: String, required: true }, // for static or hashed passwords
   assignedLeads: [{ type: mongoose.Schema.Types.ObjectId, ref: "Form" }],
 }, { timestamps: true });

@@ -26,7 +26,7 @@ export const createForm = async (req, res) => {
           creatorInfo.name = teamMember.name;
           
           // If a sales or marketing person is creating a lead, automatically assign it to them
-          if (req.user.role === "sales" || req.user.role === "marketing") {
+          if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
             formData.assignedTo = teamMember._id;
             formData.assignedBy = teamMember._id;
             formData.assignedByName = teamMember.name;
@@ -52,7 +52,7 @@ export const createForm = async (req, res) => {
     const savedForm = await newForm.save();
     
     // If this is a sales or marketing person's lead, update their assigned leads
-    if (req.user && (req.user.role === "sales" || req.user.role === "marketing") && req.user._id) {
+    if (req.user && (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") && req.user._id) {
       const teamMember = await Team.findById(req.user._id);
       if (teamMember) {
         await Team.findByIdAndUpdate(teamMember._id, {
@@ -76,21 +76,21 @@ export const getForms = async (req, res) => {
     if (user.role === "admin" || user.role === "manager") {
       // Admin and manager can see all leads
       filter = {};
-    } else if (user.role === "sales" || user.role === "marketing") {
-      // Sales and Marketing can see:
+    } else if (user.role === "sales" || user.role === "marketing" || user.role === "counsellor" || user.role === "telecaller") {
+      // Sales, Marketing, Counsellor and Telecaller can see:
       // 1. Leads assigned to them
       // 2. Unassigned leads (not assigned to anyone)
-      // But NOT leads assigned to other sales or marketing persons
+      // But NOT leads assigned to other sales, marketing, counsellor or telecaller persons
       const teamMember = await Team.findOne({ email: user.email });
 
       if (!teamMember) {
-        return res.status(404).json({ message: "Sales or Marketing team member not found" });
+        return res.status(404).json({ message: "Sales, Marketing, Counsellor or Telecaller team member not found" });
       }
 
       // Filter to show leads assigned to this member OR unassigned leads
       filter = {
         $or: [
-          { assignedTo: teamMember._id }, // Leads assigned to this sales or marketing person
+          { assignedTo: teamMember._id }, // Leads assigned to this sales, marketing, counsellor or telecaller person
           { assignedTo: null } // Unassigned leads
         ]
       };
@@ -175,7 +175,7 @@ export const getAssignedForms = async (req, res) => {
 export const updateFormDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
     // Check if user has permission to update this form
     const form = await Form.findById(id);
@@ -184,11 +184,33 @@ export const updateFormDetails = async (req, res) => {
     }
 
     // For sales and marketing, they can only update forms assigned to them
-    if (req.user.role === "sales" || req.user.role === "marketing") {
+    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
       }
+    }
+
+    // Add updatedBy tracking information
+    if (req.user) {
+      let updaterInfo = {
+        email: req.user.email,
+        role: req.user.role
+      };
+
+      // If it's a database user (not static), get additional info
+      if (req.user._id) {
+        const teamMember = await Team.findById(req.user._id);
+        if (teamMember) {
+          updaterInfo.userId = teamMember._id;
+          updaterInfo.name = teamMember.name;
+        }
+      } else {
+        // For static users (admin, manager, sales), use email as name
+        updaterInfo.name = req.user.email;
+      }
+
+      updateData.updatedBy = updaterInfo;
     }
 
     // Admin and manager can update any form
@@ -220,16 +242,41 @@ export const markAsRead = async (req, res) => {
     }
 
     // For sales and marketing, they can only mark forms assigned to them as read
-    if (req.user.role === "sales" || req.user.role === "marketing") {
+    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only mark leads assigned to you as read." });
       }
     }
 
+    // Prepare update data with tracking information
+    const updateData = { isRead: true, status: "read" };
+    
+    // Add updatedBy tracking information
+    if (req.user) {
+      let updaterInfo = {
+        email: req.user.email,
+        role: req.user.role
+      };
+
+      // If it's a database user (not static), get additional info
+      if (req.user._id) {
+        const teamMember = await Team.findById(req.user._id);
+        if (teamMember) {
+          updaterInfo.userId = teamMember._id;
+          updaterInfo.name = teamMember.name;
+        }
+      } else {
+        // For static users (admin, manager, sales), use email as name
+        updaterInfo.name = req.user.email;
+      }
+
+      updateData.updatedBy = updaterInfo;
+    }
+
     const updatedForm = await Form.findByIdAndUpdate(
       id,
-      { isRead: true, status: "read" },
+      updateData,
       { new: true }
     );
     res.status(200).json(updatedForm);
@@ -256,14 +303,39 @@ export const updateStatus = async (req, res) => {
     }
 
     // For sales and marketing, they can only update status of forms assigned to them
-    if (req.user.role === "sales" || req.user.role === "marketing") {
+    if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update status of leads assigned to you." });
       }
     }
 
-    const updatedForm = await Form.findByIdAndUpdate(id, { status }, { new: true });
+    // Prepare update data with tracking information
+    const updateData = { status };
+    
+    // Add updatedBy tracking information
+    if (req.user) {
+      let updaterInfo = {
+        email: req.user.email,
+        role: req.user.role
+      };
+
+      // If it's a database user (not static), get additional info
+      if (req.user._id) {
+        const teamMember = await Team.findById(req.user._id);
+        if (teamMember) {
+          updaterInfo.userId = teamMember._id;
+          updaterInfo.name = teamMember.name;
+        }
+      } else {
+        // For static users (admin, manager, sales), use email as name
+        updaterInfo.name = req.user.email;
+      }
+
+      updateData.updatedBy = updaterInfo;
+    }
+
+    const updatedForm = await Form.findByIdAndUpdate(id, updateData, { new: true });
     res.status(200).json(updatedForm);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -326,13 +398,37 @@ export const assignLead = async (req, res) => {
     }
 
     // ✅ Update the Form with the new assignment
+    const updateData = {
+      assignedTo: assignedUser._id,
+      assignedBy: assignedById, // Store the ID if it's a team member, otherwise null
+      assignedByName: assignedByName, // Store the name for display purposes
+    };
+    
+    // Add updatedBy tracking information
+    if (req.user) {
+      let updaterInfo = {
+        email: req.user.email,
+        role: req.user.role
+      };
+
+      // If it's a database user (not static), get additional info
+      if (req.user._id) {
+        const teamMember = await Team.findById(req.user._id);
+        if (teamMember) {
+          updaterInfo.userId = teamMember._id;
+          updaterInfo.name = teamMember.name;
+        }
+      } else {
+        // For static users (admin, manager, sales), use email as name
+        updaterInfo.name = req.user.email;
+      }
+
+      updateData.updatedBy = updaterInfo;
+    }
+
     const updatedForm = await Form.findByIdAndUpdate(
       id,
-      {
-        assignedTo: assignedUser._id,
-        assignedBy: assignedById, // Store the ID if it's a team member, otherwise null
-        assignedByName: assignedByName, // Store the name for display purposes
-      },
+      updateData,
       { new: true }
     ).populate("assignedTo assignedBy", "name email");
 
