@@ -74,7 +74,7 @@ const formSchema = new mongoose.Schema(
     },
     feesInstallmentStructure: {
       type: String,
-      enum: ["one_time", "two_installments", "three_installments", "four_installments", "other"],
+      enum: ["one_time", "two_installments", "three_installments", "four_installments", "EMI", "Loan", "other"],
       default: "one_time"
     },
 
