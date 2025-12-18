@@ -295,10 +295,6 @@ export const importCompaniesFromExcel = async (req, res) => {
     // Convert to JSON with defval to handle empty cells
     const jsonData = xlsx.utils.sheet_to_json(worksheet, { defval: "" });
 
-    console.log("===========================================");
-    console.log("Excel Import Debug Information");
-    console.log("===========================================");
-    console.log("Total rows found:", jsonData.length);
 
     if (jsonData.length > 0) {
       const columns = Object.keys(jsonData[0]);
@@ -310,7 +306,6 @@ export const importCompaniesFromExcel = async (req, res) => {
       console.log("\nFirst row data sample:");
       console.log(JSON.stringify(jsonData[0], null, 2));
     }
-    console.log("===========================================\n");
 
     // Process and validate data
     const companiesToInsert = [];
