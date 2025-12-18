@@ -383,6 +383,8 @@ export const importCompaniesFromExcel = async (req, res) => {
         const companyWebsite = findColumnValue(row, 'Company Website', 'company website', 'Website');
         const companyDescription = findColumnValue(row, 'Company Description', 'company description');
         const jobDescription = findColumnValue(row, 'Job Description', 'job description', 'Description');
+        const status = findColumnValue(row, 'Status', 'status');
+        const callStatus = findColumnValue(row, 'Call Status', 'call status', 'CallStatus');
 
         // Create company data object
         const companyData = {
@@ -409,6 +411,8 @@ export const importCompaniesFromExcel = async (req, res) => {
           directLink: companyWebsite ? companyWebsite.toString().trim() : '',
           workType: workType ? workType.toString().trim() : '',
           interviewType: interviewType ? interviewType.toString().trim() : '',
+          status: status ? status.toString().trim() : '',
+          callStatus: callStatus ? callStatus.toString().trim() : '',
           requirements: [],
           responsibilities: [],
           skills: []
