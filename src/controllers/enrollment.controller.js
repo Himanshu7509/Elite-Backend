@@ -32,6 +32,15 @@ export const createEnrollment = async (req, res) => {
         message: "Please provide a valid email address." 
       });
     }
+    
+    // Validate productCompany
+    const validProductCompanies = ['JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards'];
+    if (!validProductCompanies.includes(productCompany)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid product company. Must be one of: " + validProductCompanies.join(', ') 
+      });
+    }
 
     const newEnrollment = new Enrollment({
       // Basic fields
@@ -324,6 +333,7 @@ export const updateEnrollmentDetails = async (req, res) => {
       // Basic fields
       studentName, studentEmail, studentPhone, courseName, message,
       age, gender, location, qualification,
+      productCompany,
       // Status fields
       status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus,
       admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure,
@@ -336,6 +346,17 @@ export const updateEnrollmentDetails = async (req, res) => {
       date
     } = req.body;
 
+    // Validate productCompany if provided
+    if (productCompany !== undefined) {
+      const validProductCompanies = ['JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards'];
+      if (!validProductCompanies.includes(productCompany)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid product company. Must be one of: " + validProductCompanies.join(', ') 
+        });
+      }
+    }
+    
     // Build update object with only provided fields
     const updateData = {};
     
@@ -345,6 +366,7 @@ export const updateEnrollmentDetails = async (req, res) => {
     if (studentPhone !== undefined) updateData.studentPhone = studentPhone;
     if (courseName !== undefined) updateData.courseName = courseName;
     if (message !== undefined) updateData.message = message;
+    if (productCompany !== undefined) updateData.productCompany = productCompany;
     
     // Status fields
     if (status !== undefined) updateData.status = status;
