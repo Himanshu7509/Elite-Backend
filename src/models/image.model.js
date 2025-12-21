@@ -10,6 +10,11 @@ const imageSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  productCompany: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   createdBy: {
     type: String,
     required: true,

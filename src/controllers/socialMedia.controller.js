@@ -13,10 +13,10 @@ export const createSocialMediaPost = async (req, res) => {
       });
     }
 
-    const { productCompany, platforms, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, caption, platforms, uploadType, date, sourceUrl } = req.body;
     
     // Log incoming request data for debugging
-    console.log("Incoming request data:", { productCompany, platforms, uploadType, date, sourceUrl });
+    console.log("Incoming request data:", { productCompany, caption, platforms, uploadType, date, sourceUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
@@ -95,6 +95,7 @@ export const createSocialMediaPost = async (req, res) => {
 
     const newPost = new SocialMedia({
       productCompany,
+      caption: caption || '',
       platforms: platformArray,
       uploadType,
       date: parsedDate,
@@ -199,11 +200,11 @@ export const updateSocialMediaPost = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { productCompany, platforms, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, caption, platforms, uploadType, date, sourceUrl } = req.body;
 
     // Log incoming request data for debugging
     console.log("Updating post with ID:", id);
-    console.log("Incoming update data:", { productCompany, platforms, uploadType, date, sourceUrl });
+    console.log("Incoming update data:", { productCompany, caption, platforms, uploadType, date, sourceUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
@@ -274,6 +275,7 @@ export const updateSocialMediaPost = async (req, res) => {
     // Prepare update data
     const updateData = {
       productCompany: productCompany || existingPost.productCompany,
+      caption: caption || existingPost.caption,
       platforms: platformArray,
       uploadType: uploadType || existingPost.uploadType,
       date: parsedDate,

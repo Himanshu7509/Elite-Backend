@@ -44,15 +44,17 @@ const deleteFromS3 = async (imageUrl) => {
 // POST: Create Image
 export const createImage = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, productCompany } = req.body;
     
     if (!req.file) return res.status(400).json({ message: "Image is required" });
+    if (!productCompany) return res.status(400).json({ message: "Product/Category is required" });
 
     const imgUrl = await uploadToS3(req.file);
 
     const image = new Image({
       name,
       imageUrl: imgUrl,
+      productCompany,
       createdBy: req.user.email,
       creatorRole: req.user.role,
     });
@@ -88,8 +90,9 @@ export const getAllImages = async (req, res) => {
     // Transform social media posts to match image format
     const socialMediaImages = socialMediaPosts.map(post => ({
       _id: post._id,
-      name: `${post.productCompany} - ${post.platform} post`,
+      name: post.caption || `${post.productCompany} - ${post.platforms.join(', ')} post`,
       imageUrl: post.imageUrl,
+      productCompany: post.productCompany,
       createdBy: post.uploadedByName,
       creatorRole: 'Social Media',
       createdAt: post.createdAt,

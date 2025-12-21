@@ -6,6 +6,10 @@ const socialMediaSchema = new mongoose.Schema({
     required: true,
     enum: ['JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards']
   },
+  caption: {
+    type: String,
+    default: ''
+  },
   platforms: {
     type: [String],
     required: true,
