@@ -7,6 +7,7 @@ export const createEnrollment = async (req, res) => {
     const { 
       studentName, studentEmail, studentPhone, courseName, message, productCompany, 
       age, gender, location, qualification,
+      experience, specialisation, highestDegree, collegeOrInstituteName, schoolName,
       // Status fields
       status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus,
       admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure,
@@ -84,6 +85,13 @@ export const createEnrollment = async (req, res) => {
       location: location || null,
       qualification: qualification || null,
       
+      // Education & Experience
+      experience: experience || null,
+      specialisation: specialisation || null,
+      highestDegree: highestDegree || null,
+      collegeOrInstituteName: collegeOrInstituteName || null,
+      schoolName: schoolName || null,
+      
       // Date fields
       date: date || new Date()
     });
@@ -109,6 +117,8 @@ export const createEnrollment = async (req, res) => {
 export const getAllEnrollments = async (req, res) => {
   try {
     const enrollments = await Enrollment.find()
+      .populate('assignedTo', 'name email role')
+      .populate('assignedBy', 'name email role')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ 
@@ -130,7 +140,9 @@ export const getAllEnrollments = async (req, res) => {
 export const getEnrollmentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const enrollment = await Enrollment.findById(id);
+    const enrollment = await Enrollment.findById(id)
+      .populate('assignedTo', 'name email role')
+      .populate('assignedBy', 'name email role');
 
     if (!enrollment) {
       return res.status(404).json({ 
@@ -334,6 +346,7 @@ export const updateEnrollmentDetails = async (req, res) => {
       // Basic fields
       studentName, studentEmail, studentPhone, courseName, message,
       age, gender, location, qualification,
+      experience, specialisation, highestDegree, collegeOrInstituteName, schoolName,
       productCompany,
       // Status fields
       status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus,
@@ -368,6 +381,19 @@ export const updateEnrollmentDetails = async (req, res) => {
     if (courseName !== undefined) updateData.courseName = courseName;
     if (message !== undefined) updateData.message = message;
     if (productCompany !== undefined) updateData.productCompany = productCompany;
+    
+    // Additional info
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = gender;
+    if (location !== undefined) updateData.location = location;
+    if (qualification !== undefined) updateData.qualification = qualification;
+    
+    // Education & Experience
+    if (experience !== undefined) updateData.experience = experience;
+    if (specialisation !== undefined) updateData.specialisation = specialisation;
+    if (highestDegree !== undefined) updateData.highestDegree = highestDegree;
+    if (collegeOrInstituteName !== undefined) updateData.collegeOrInstituteName = collegeOrInstituteName;
+    if (schoolName !== undefined) updateData.schoolName = schoolName;
     
     // Status fields
     if (status !== undefined) updateData.status = status;
@@ -428,7 +454,7 @@ export const updateEnrollmentDetails = async (req, res) => {
       id, 
       updateData,
       { new: true, runValidators: true }
-    );
+    ).populate('assignedTo', 'name email role').populate('assignedBy', 'name email role');
 
     if (!enrollment) {
       return res.status(404).json({ 

@@ -128,6 +128,13 @@ const enrollmentSchema = new mongoose.Schema({
     required: false
   },
   
+  // Education & Experience
+  experience: { type: String },
+  specialisation: { type: String },
+  highestDegree: { type: String },
+  collegeOrInstituteName: { type: String },
+  schoolName: { type: String },
+  
   // Date fields
   enrolledAt: {
     type: Date,
