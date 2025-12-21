@@ -21,17 +21,8 @@ export const login = async (req, res) => {
       });
     }
 
-    // --- Manager Login (from environment variables) ---
-    if (Auth.manager.emails.includes(email) && password === Auth.manager.password) {
-      const token = jwt.sign({ email, role: "manager" }, JWT_SECRET, { expiresIn: "24h" });
-
-      return res.status(200).json({
-        message: "Manager login successful",
-        token,
-        role: "manager",
-        _id: null // Manager doesn't have an _id in the database
-      });
-    }
+    // Manager accounts are now created dynamically through the team management system
+    // No hardcoded manager login logic
 
     // --- Check database for team members ---
     const teamMember = await Team.findOne({ email });
