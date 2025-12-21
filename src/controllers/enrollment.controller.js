@@ -1,4 +1,5 @@
 import Enrollment from "../models/enrollment.model.js";
+import Team from "../models/team.model.js";
 
 // Create a new enrollment
 export const createEnrollment = async (req, res) => {
@@ -380,9 +381,29 @@ export const updateEnrollmentDetails = async (req, res) => {
     if (feesInstallmentStructure !== undefined) updateData.feesInstallmentStructure = feesInstallmentStructure;
     
     // CRM fields
-    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
-    if (assignedBy !== undefined) updateData.assignedBy = assignedBy;
-    if (assignedByName !== undefined) updateData.assignedByName = assignedByName;
+    if (assignedTo !== undefined) {
+      // Find the team member who is receiving the enrollment
+      const assignedUser = await Team.findOne({ email: assignedTo });
+      if (assignedUser) {
+        updateData.assignedTo = assignedUser._id;
+      } else {
+        updateData.assignedTo = null;
+      }
+    }
+    
+    if (assignedBy !== undefined) {
+      // Find the team member who is doing the assignment
+      const assignedByUser = await Team.findOne({ email: assignedBy });
+      if (assignedByUser) {
+        updateData.assignedBy = assignedByUser._id;
+        updateData.assignedByName = assignedByUser.name;
+      } else {
+        // If not a team member, store the email as name
+        updateData.assignedByName = assignedBy;
+      }
+    } else if (assignedByName !== undefined) {
+      updateData.assignedByName = assignedByName;
+    }
     
     // Tracking fields
     if (createdBy !== undefined) updateData.createdBy = createdBy;
