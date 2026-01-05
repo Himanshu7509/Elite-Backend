@@ -13,7 +13,7 @@ export const createSocialMediaPost = async (req, res) => {
       });
     }
 
-    const { productCompany, caption, platforms, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, caption, platforms, uploadType, date, sourceUrl, flyerUrl } = req.body;
     
     // Log incoming request data for debugging
     console.log("Incoming request data:", { productCompany, caption, platforms, uploadType, date, sourceUrl, flyerUrl });
@@ -107,8 +107,8 @@ export const createSocialMediaPost = async (req, res) => {
       platforms: platformArray,
       uploadType,
       date: parsedDate,
-      sourceUrl: uploadType === 'reel' ? sourceUrl : null,
-      flyerUrl: uploadType === 'flyer' ? flyerUrl : null,
+      sourceUrl: (uploadType === 'reel' || uploadType === 'post') ? sourceUrl : null,
+      flyerUrl: uploadType === 'flyer' ? (sourceUrl || flyerUrl) : null,
       imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : null,
       videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : null,
       uploadedBy, // This can now be null
@@ -298,7 +298,7 @@ export const updateSocialMediaPost = async (req, res) => {
       uploadType: uploadType || existingPost.uploadType,
       date: parsedDate,
       sourceUrl: (uploadType === 'reel' || uploadType === 'post') ? sourceUrl : existingPost.sourceUrl,
-      flyerUrl: uploadType === 'flyer' ? flyerUrl : existingPost.flyerUrl,
+      flyerUrl: uploadType === 'flyer' ? (sourceUrl || flyerUrl) : existingPost.flyerUrl,
       imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : existingPost.imageUrl,
       videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : existingPost.videoUrl
     };
