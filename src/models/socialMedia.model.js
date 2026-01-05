@@ -4,7 +4,7 @@ const socialMediaSchema = new mongoose.Schema({
   productCompany: {
     type: String,
     required: true,
-    enum: ['JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards']
+    enum: ['Elite-Associate', 'JIFSA', 'Elite-BIM', 'Elite-BIFS', 'EEE-Technologies', 'Elite-Jobs', 'Elite-Cards']
   },
   caption: {
     type: String,
@@ -18,7 +18,15 @@ const socialMediaSchema = new mongoose.Schema({
   uploadType: {
     type: String,
     required: true,
-    enum: ['post', 'reel']
+    enum: ['post', 'reel', 'flyer']
+  },
+  flyerUrl: {
+    type: String,
+    default: null
+  },
+  videoUrl: {
+    type: String,
+    default: null
   },
   date: {
     type: Date,

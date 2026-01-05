@@ -16,7 +16,7 @@ export const createSocialMediaPost = async (req, res) => {
     const { productCompany, caption, platforms, uploadType, date, sourceUrl } = req.body;
     
     // Log incoming request data for debugging
-    console.log("Incoming request data:", { productCompany, caption, platforms, uploadType, date, sourceUrl });
+    console.log("Incoming request data:", { productCompany, caption, platforms, uploadType, date, sourceUrl, flyerUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
@@ -50,14 +50,22 @@ export const createSocialMediaPost = async (req, res) => {
       });
     }
 
-    // Handle file upload for posts
+    // Handle file upload for posts and flyers
     let imageUrl = null;
-    if (uploadType === 'post' && req.file) {
+    let videoUrl = null;
+    if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
       try {
         console.log("Uploading file to S3...");
         const s3Result = await uploadFileToS3(req.file);
-        imageUrl = s3Result.Location;
-        console.log("File uploaded successfully:", imageUrl);
+        
+        // Determine if the file is an image or video
+        if (req.file.mimetype.startsWith('image/')) {
+          imageUrl = s3Result.Location;
+          console.log("Image uploaded successfully:", imageUrl);
+        } else if (req.file.mimetype.startsWith('video/')) {
+          videoUrl = s3Result.Location;
+          console.log("Video uploaded successfully:", videoUrl);
+        }
       } catch (uploadError) {
         console.error("Error uploading file to S3:", uploadError);
         return res.status(500).json({ 
@@ -100,7 +108,9 @@ export const createSocialMediaPost = async (req, res) => {
       uploadType,
       date: parsedDate,
       sourceUrl: uploadType === 'reel' ? sourceUrl : null,
-      imageUrl: uploadType === 'post' ? imageUrl : null,
+      flyerUrl: uploadType === 'flyer' ? flyerUrl : null,
+      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : null,
+      videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : null,
       uploadedBy, // This can now be null
       uploadedByName,
       uploadedByEmail
@@ -200,11 +210,11 @@ export const updateSocialMediaPost = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { productCompany, caption, platforms, uploadType, date, sourceUrl } = req.body;
+    const { productCompany, caption, platforms, uploadType, date, sourceUrl, flyerUrl } = req.body;
 
     // Log incoming request data for debugging
     console.log("Updating post with ID:", id);
-    console.log("Incoming update data:", { productCompany, caption, platforms, uploadType, date, sourceUrl });
+    console.log("Incoming update data:", { productCompany, caption, platforms, uploadType, date, sourceUrl, flyerUrl });
     console.log("User data:", req.user);
     console.log("File data:", req.file);
 
@@ -254,14 +264,22 @@ export const updateSocialMediaPost = async (req, res) => {
       }
     }
 
-    // Handle file upload for posts
+    // Handle file upload for posts and flyers
     let imageUrl = existingPost.imageUrl;
-    if (uploadType === 'post' && req.file) {
+    let videoUrl = existingPost.videoUrl;
+    if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
       try {
         console.log("Uploading new file to S3 for update...");
         const s3Result = await uploadFileToS3(req.file);
-        imageUrl = s3Result.Location;
-        console.log("New file uploaded successfully:", imageUrl);
+        
+        // Determine if the file is an image or video
+        if (req.file.mimetype.startsWith('image/')) {
+          imageUrl = s3Result.Location;
+          console.log("New image uploaded successfully:", imageUrl);
+        } else if (req.file.mimetype.startsWith('video/')) {
+          videoUrl = s3Result.Location;
+          console.log("New video uploaded successfully:", videoUrl);
+        }
       } catch (uploadError) {
         console.error("Error uploading file to S3:", uploadError);
         return res.status(500).json({ 
@@ -279,8 +297,10 @@ export const updateSocialMediaPost = async (req, res) => {
       platforms: platformArray,
       uploadType: uploadType || existingPost.uploadType,
       date: parsedDate,
-      sourceUrl: uploadType === 'reel' ? sourceUrl : existingPost.sourceUrl,
-      imageUrl: uploadType === 'post' ? imageUrl : existingPost.imageUrl
+      sourceUrl: (uploadType === 'reel' || uploadType === 'post') ? sourceUrl : existingPost.sourceUrl,
+      flyerUrl: uploadType === 'flyer' ? flyerUrl : existingPost.flyerUrl,
+      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : existingPost.imageUrl,
+      videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : existingPost.videoUrl
     };
 
     console.log("Updating post with data:", updateData);
