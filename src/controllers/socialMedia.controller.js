@@ -346,8 +346,8 @@ export const deleteSocialMediaPost = async (req, res) => {
       });
     }
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "Social media post deleted successfully"
     });
   } catch (error) {
@@ -359,3 +359,62 @@ export const deleteSocialMediaPost = async (req, res) => {
     });
   }
 };
+
+// Get social media statistics
+export const getSocialMediaStats = async (req, res) => {
+  try {
+    // Marketing users, managers, sales persons, and admin can view stats
+    if (!['marketing', 'manager', 'sales', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only marketing users, managers, sales persons, and admin can view social media stats." 
+      });
+    }
+
+    // Get all social media posts
+    const posts = await SocialMedia.find();
+    
+    // Calculate overall stats
+    const totalPosts = posts.length;
+    const totalReels = posts.filter(post => post.uploadType === 'reel').length;
+    const totalPostsType = posts.filter(post => post.uploadType === 'post').length;
+    const totalFlyers = posts.filter(post => post.uploadType === 'flyer').length;
+    
+    // Calculate team stats by uploadedByName
+    const teamStats = {};
+    posts.forEach(post => {
+      const name = post.uploadedByName;
+      if (!teamStats[name]) {
+        teamStats[name] = { total: 0, posts: 0, reels: 0, flyers: 0 };
+      }
+      teamStats[name].total++;
+      if (post.uploadType === 'post') {
+        teamStats[name].posts++;
+      } else if (post.uploadType === 'reel') {
+        teamStats[name].reels++;
+      } else if (post.uploadType === 'flyer') {
+        teamStats[name].flyers++;
+      }
+    });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        totalPosts,
+        totalReels,
+        totalPostsType,
+        totalFlyers,
+        teamStats
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching social media stats:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch social media stats",
+      error: error.message 
+    });
+  }
+};
+
+export default SocialMedia;

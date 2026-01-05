@@ -4,7 +4,8 @@ import {
   getAllSocialMediaPosts,
   getSocialMediaPostById,
   updateSocialMediaPost,
-  deleteSocialMediaPost
+  deleteSocialMediaPost,
+  getSocialMediaStats
 } from "../controllers/socialMedia.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import multer from "multer";
@@ -36,6 +37,10 @@ SocialMediaRouter.post(
 );
 
 SocialMediaRouter.get("/get-all", verifyToken, getAllSocialMediaPosts);
+
+// Get social media statistics (this route must come before the dynamic :id route)
+SocialMediaRouter.get("/stats", verifyToken, getSocialMediaStats);
+
 SocialMediaRouter.get("/:id", verifyToken, getSocialMediaPostById);
 SocialMediaRouter.put(
   "/:id", 
