@@ -6,7 +6,8 @@ import {
   updateImage, 
   deleteImage,
   upload,
-  shareImageViaEmail
+  shareImageViaEmail,
+  getImageStats
 } from '../controllers/image.controller.js'
 import { verifyToken } from '../middleware/auth.middleware.js'
 
@@ -29,5 +30,8 @@ ImageRouter.delete("/delete/:id", verifyToken, deleteImage);
 
 // NEW: Share image via email
 ImageRouter.post("/share/:id", verifyToken, shareImageViaEmail);
+
+// NEW: Get image stats
+ImageRouter.get("/stats", verifyToken, getImageStats);
 
 export default ImageRouter;

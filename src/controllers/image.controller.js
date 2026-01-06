@@ -256,3 +256,76 @@ export const shareImageViaEmail = async (req, res) => {
     });
   }
 };
+
+// NEW: Get image statistics
+export const getImageStats = async (req, res) => {
+  try {
+    // Get regular images
+    const regularImages = await Image.find();
+    
+    // Get social media posts with images
+    const socialMediaPosts = await SocialMedia.find({ 
+      uploadType: 'post',
+      imageUrl: { $ne: null }
+    });
+    
+    // Combine all images
+    const allImages = [...regularImages, ...socialMediaPosts];
+    
+    // Calculate total counts
+    const totalImages = allImages.length;
+    
+    // Calculate counts by product company
+    const productCounts = {};
+    allImages.forEach(image => {
+      const product = image.productCompany || 'Uncategorized';
+      productCounts[product] = (productCounts[product] || 0) + 1;
+    });
+    
+    // Calculate counts by creator
+    const creatorCounts = {};
+    allImages.forEach(image => {
+      const creator = image.createdBy || image.uploadedByName || 'Unknown';
+      creatorCounts[creator] = (creatorCounts[creator] || 0) + 1;
+    });
+    
+    // Calculate counts by file type
+    const fileTypeCounts = {};
+    allImages.forEach(image => {
+      const imageUrl = image.imageUrl || '';
+      let fileType = 'Other';
+      
+      if (imageUrl.includes('.jpg') || imageUrl.includes('.jpeg') || imageUrl.includes('.png') || 
+          imageUrl.includes('.gif') || imageUrl.includes('.bmp') || imageUrl.includes('.webp')) {
+        fileType = 'Image';
+      } else if (imageUrl.includes('.pdf')) {
+        fileType = 'PDF';
+      } else if (imageUrl.includes('.doc') || imageUrl.includes('.docx')) {
+        fileType = 'Word';
+      } else if (imageUrl.includes('.ppt') || imageUrl.includes('.pptx')) {
+        fileType = 'PowerPoint';
+      } else if (imageUrl.includes('.xls') || imageUrl.includes('.xlsx')) {
+        fileType = 'Excel';
+      }
+      
+      fileTypeCounts[fileType] = (fileTypeCounts[fileType] || 0) + 1;
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        totalImages,
+        productCounts,
+        creatorCounts,
+        fileTypeCounts
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching image stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch image stats",
+      error: error.message,
+    });
+  }
+};
