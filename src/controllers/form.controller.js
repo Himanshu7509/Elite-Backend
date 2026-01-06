@@ -1,11 +1,27 @@
 import Form from "../models/form.model.js";
 import Team from "../models/team.model.js";
+import { uploadFileToS3 } from "../utils/s3Upload.js";
+import multer from "multer";
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ✅ Create a new lead/form entry
 export const createForm = async (req, res) => {
   try {
     // Prepare the form data with tracking information
     const formData = { ...req.body };
+    
+    // Handle resume file upload if present
+    if (req.file) {
+      try {
+        const uploadedFile = await uploadFileToS3(req.file, 'resumes');
+        formData.resume = uploadedFile.Location;
+      } catch (uploadError) {
+        console.error("Error uploading resume:", uploadError);
+        return res.status(400).json({ message: "Failed to upload resume: " + uploadError.message });
+      }
+    }
     
     // If user is authenticated, track who created the lead
     if (req.user) {
@@ -192,6 +208,17 @@ export const updateFormDetails = async (req, res) => {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
         return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
+      }
+    }
+
+    // Handle resume file upload if present
+    if (req.file) {
+      try {
+        const uploadedFile = await uploadFileToS3(req.file, 'resumes');
+        updateData.resume = uploadedFile.Location;
+      } catch (uploadError) {
+        console.error("Error uploading resume:", uploadError);
+        return res.status(400).json({ message: "Failed to upload resume: " + uploadError.message });
       }
     }
 
@@ -492,3 +519,6 @@ export const deleteLead = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Export the upload middleware
+export { upload };

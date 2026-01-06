@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 dotenv.config();
 
-export const uploadFileToS3 = async (file) => {
+export const uploadFileToS3 = async (file, folder = 'social-media') => {
   // Validate required environment variables
   const bucketName = process.env.AWS_BUCKET_NAME;
   
@@ -18,7 +18,7 @@ export const uploadFileToS3 = async (file) => {
   }
 
   // Create the S3 upload parameters without ACL
-  const fileKey = `social-media/${uuidv4()}-${file.originalname}`;
+  const fileKey = `${folder}/${uuidv4()}-${file.originalname}`;
   const params = {
     Bucket: bucketName,
     Key: fileKey,

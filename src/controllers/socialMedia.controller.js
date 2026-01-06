@@ -56,7 +56,7 @@ export const createSocialMediaPost = async (req, res) => {
     if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
       try {
         console.log("Uploading file to S3...");
-        const s3Result = await uploadFileToS3(req.file);
+        const s3Result = await uploadFileToS3(req.file, 'social-media');
         
         // Determine if the file is an image or video
         if (req.file.mimetype.startsWith('image/')) {
@@ -270,7 +270,7 @@ export const updateSocialMediaPost = async (req, res) => {
     if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
       try {
         console.log("Uploading new file to S3 for update...");
-        const s3Result = await uploadFileToS3(req.file);
+        const s3Result = await uploadFileToS3(req.file, 'social-media');
         
         // Determine if the file is an image or video
         if (req.file.mimetype.startsWith('image/')) {

@@ -17,12 +17,15 @@ import { isAdmin } from "../middleware/role.middleware.js";
 
 const formRouter = express.Router();
 
-formRouter.post("/create-form", optionalAuth, createForm);
+// Middleware to handle file uploads
+import { upload } from "../controllers/form.controller.js";
+
+formRouter.post("/create-form", optionalAuth, upload.single("resume"), createForm);
 formRouter.get("/read-form", verifyToken, getForms);
 formRouter.get("/read-all-forms", verifyToken, getAllForms);
 formRouter.get("/unassigned", verifyToken, getUnassignedForms);
 formRouter.get("/assigned/:salesId", verifyToken, getAssignedForms);
-formRouter.patch("/update/:id", verifyToken, updateFormDetails);
+formRouter.patch("/update/:id", verifyToken, upload.single("resume"), updateFormDetails);
 formRouter.patch("/:id/read", verifyToken, markAsRead);
 formRouter.patch("/:id/status", verifyToken, updateStatus);
 formRouter.patch("/:id/assign", verifyToken, assignLead);

@@ -110,6 +110,9 @@ const formSchema = new mongoose.Schema(
 
     // Date fields
     date: { type: Date, default: Date.now }, // ✅ New field (Form submission date)
+    
+    // Resume field
+    resume: { type: String }, // URL to resume file in S3
   },
   { timestamps: true }
 );
