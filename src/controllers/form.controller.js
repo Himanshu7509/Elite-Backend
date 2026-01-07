@@ -1,6 +1,7 @@
 import Form from "../models/form.model.js";
 import Team from "../models/team.model.js";
 import { uploadFileToS3 } from "../utils/s3Upload.js";
+import s3 from "../config/s3.js";
 import multer from "multer";
 
 // Configure multer for file uploads
@@ -487,6 +488,36 @@ export const assignLead = async (req, res) => {
   }
 };
 
+
+
+// Function to delete file from S3
+const deleteFileFromS3 = async (fileUrl) => {
+  try {
+    if (!fileUrl) return;
+    
+    // Extract the file key from the URL
+    const urlParts = fileUrl.split('.amazonaws.com/');
+    if (urlParts.length < 2) {
+      console.error('Invalid S3 URL format:', fileUrl);
+      return;
+    }
+    
+    const fileKey = urlParts[1];
+    
+    const params = {
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: fileKey,
+    };
+    
+    await s3.deleteObject(params).promise();
+    console.log('File deleted from S3 successfully:', fileKey);
+  } catch (error) {
+    console.error('Error deleting file from S3:', error);
+    // Don't throw error as we don't want to fail the entire delete operation
+    // if S3 deletion fails
+  }
+};
+
 // ✅ Delete a lead - only admin can delete leads
 export const deleteLead = async (req, res) => {
   try {
@@ -501,6 +532,11 @@ export const deleteLead = async (req, res) => {
     const form = await Form.findById(id);
     if (!form) {
       return res.status(404).json({ message: "Lead not found" });
+    }
+
+    // If the lead has a resume, delete it from S3
+    if (form.resume) {
+      await deleteFileFromS3(form.resume);
     }
 
     // If the lead is assigned to a sales or marketing person, remove it from their assigned leads
