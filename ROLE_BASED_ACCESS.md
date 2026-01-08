@@ -43,6 +43,18 @@ This document explains the role-based access control system implemented in the E
    - Can add new leads
    - Cannot see other telecaller members' leads
 
+7. **Developer**
+   - Can only see leads (read-only)
+   - Cannot create, update, or delete leads
+   - Can create, update, and read their own daily reports
+   - Cannot delete reports (only admin can delete)
+
+8. **Analyst**
+   - Can only see leads (read-only)
+   - Cannot create, update, or delete leads
+   - Can create, update, and read their own daily reports
+   - Cannot delete reports (only admin can delete)
+
 ## API Endpoints
 
 ### Authentication
@@ -110,15 +122,19 @@ JWT_SECRET=your_jwt_secret_key
 
 ## Role Permissions Summary
 
-| Action | Admin | Manager | Sales | Marketing | Counsellor | Telecaller |
-|--------|-------|---------|-------|-----------|------------|------------|
-| Create team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| View all team members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Update team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Delete team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| View all leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| View assigned leads only | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Assign leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Update any lead | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Update assigned leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Add new leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Action | Admin | Manager | Sales | Marketing | Counsellor | Telecaller | Developer | Analyst |
+|--------|-------|---------|-------|-----------|------------|------------|-----------|---------|
+| Create team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View all team members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Update team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Delete team members | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| View all leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| View assigned leads only | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Assign leads | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Update any lead | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Update assigned leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Add new leads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Create reports | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| View own reports | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Update own reports | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Delete reports | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
