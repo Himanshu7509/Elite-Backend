@@ -9,7 +9,8 @@ import {
   updateStatus,
   assignLead,
   updateFormDetails,
-  deleteLead
+  deleteLead,
+  updateEducation
 } from "../controllers/form.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/optionalAuth.middleware.js";
@@ -30,5 +31,8 @@ formRouter.patch("/:id/read", verifyToken, markAsRead);
 formRouter.patch("/:id/status", verifyToken, updateStatus);
 formRouter.patch("/:id/assign", verifyToken, assignLead);
 formRouter.delete("/delete-form/:id", verifyToken, isAdmin, deleteLead);
+
+// Route for updating education
+formRouter.put("/update-education/:id", verifyToken, updateEducation);
 
 export default formRouter;

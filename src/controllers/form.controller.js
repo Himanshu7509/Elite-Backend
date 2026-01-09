@@ -556,5 +556,55 @@ export const deleteLead = async (req, res) => {
   }
 };
 
+// ✅ Update education status
+export const updateEducation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { educationField } = req.body;
+    
+    // Validate education field
+    const validFields = ['tenth', 'twelfth', 'undergraduate', 'postgraduate', 'phd'];
+    if (!validFields.includes(educationField)) {
+      return res.status(400).json({ message: "Invalid education field" });
+    }
+    
+    // Check if user has permission to update this form
+    let form = await Form.findById(id);
+    if (!form) {
+      return res.status(404).json({ message: "Form not found" });
+    }
+    
+    // For sales, marketing, counselors and telecallers, they can update forms assigned to them
+    // Admins and managers can update any form
+    if (req.user.role === "sales" || req.user.role === "marketing") {
+      const teamMember = await Team.findOne({ email: req.user.email });
+      if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
+        return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
+      }
+    }
+    
+    // Toggle the education field
+    const currentValue = form.education && form.education[educationField] ? form.education[educationField] : false;
+    
+    const updatedForm = await Form.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          [`education.${educationField}`]: !currentValue
+        }
+      },
+      { new: true }
+    );
+    
+    res.status(200).json({
+      message: "Education updated successfully",
+      updatedForm,
+    });
+  } catch (error) {
+    console.error("Error updating education:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Export the upload middleware
 export { upload };

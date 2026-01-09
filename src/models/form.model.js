@@ -22,6 +22,18 @@ const formSchema = new mongoose.Schema(
     highestDegree: { type: String }, // ✅ New field
     collegeOrInstituteName: { type: String }, // ✅ New field
     schoolName: { type: String }, // ✅ New field
+    
+    // Education qualifications
+    education: {
+      type: {
+        tenth: { type: Boolean, default: false },
+        twelfth: { type: Boolean, default: false },
+        undergraduate: { type: Boolean, default: false },
+        postgraduate: { type: Boolean, default: false },
+        phd: { type: Boolean, default: false }
+      },
+      _id: false
+    },
 
     // Company/Product information
     productCompany: { type: String, required: true },
