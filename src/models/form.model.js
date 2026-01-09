@@ -34,6 +34,18 @@ const formSchema = new mongoose.Schema(
       },
       _id: false
     },
+    
+    // Remarks system
+    remarks: [{
+      sequenceNumber: Number,
+      message: String,
+      reminderDate: Date,
+      status: String,
+      createdAt: { type: Date, default: Date.now },
+      createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+      isActive: { type: Boolean, default: true }
+    }],
+    
 
     // Company/Product information
     productCompany: { type: String, required: true },

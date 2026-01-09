@@ -606,5 +606,61 @@ export const updateEducation = async (req, res) => {
   }
 };
 
+// ✅ Add remark to a lead
+export const addRemark = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, reminderDate, status } = req.body;
+    
+    // Validate required fields
+    if (!message || !status) {
+      return res.status(400).json({ message: "Message and status are required" });
+    }
+    
+    // Check if user has permission to update this form
+    const form = await Form.findById(id);
+    if (!form) {
+      return res.status(404).json({ message: "Form not found" });
+    }
+    
+    // For sales, marketing, counselors and telecallers, they can update forms assigned to them
+    // Admins and managers can update any form
+    if (req.user.role === "sales" || req.user.role === "marketing") {
+      const teamMember = await Team.findOne({ email: req.user.email });
+      if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
+        return res.status(403).json({ message: "Access denied. You can only update leads assigned to you." });
+      }
+    }
+    
+    // Calculate the sequence number for the new remark
+    const sequenceNumber = form.remarks ? form.remarks.length + 1 : 1;
+    
+    // Create the new remark
+    const newRemark = {
+      sequenceNumber,
+      message,
+      reminderDate: reminderDate ? new Date(reminderDate) : undefined,
+      status,
+      createdBy: req.user._id,
+      createdAt: new Date()
+    };
+    
+    // Update the form with the new remark
+    const updatedForm = await Form.findByIdAndUpdate(
+      id,
+      { $push: { remarks: newRemark } },
+      { new: true }
+    ).populate('remarks.createdBy', 'name email');
+    
+    res.status(200).json({
+      message: "Remark added successfully",
+      updatedForm,
+    });
+  } catch (error) {
+    console.error("Error adding remark:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Export the upload middleware
 export { upload };
