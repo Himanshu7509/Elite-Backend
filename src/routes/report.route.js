@@ -6,6 +6,7 @@ import {
   updateReport, 
   deleteReport, 
   getReportsByDateRange,
+  getAttendanceStats,
   upload 
 } from "../controllers/report.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
@@ -20,6 +21,9 @@ router.get("/", verifyToken, getUserReports);
 
 // Get reports by date range (requires authentication, allowed for admin, developer, analyst)
 router.get("/date-range", verifyToken, getReportsByDateRange);
+
+// Get attendance statistics (requires authentication, allowed for admin, developer, analyst)
+router.get("/attendance-stats", verifyToken, getAttendanceStats);
 
 // Get a specific report by ID (requires authentication, allowed for admin, developer, analyst)
 router.get("/:id", verifyToken, getReportById);

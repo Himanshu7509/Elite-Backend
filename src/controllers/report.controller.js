@@ -455,3 +455,69 @@ export const getReportsByDateRange = async (req, res) => {
     });
   }
 };
+
+// Get attendance statistics for all users
+export const getAttendanceStats = async (req, res) => {
+  try {
+    // Check if user has permission to view attendance stats
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can view attendance stats." 
+      });
+    }
+
+    let reports;
+    
+    // Admin can view stats for all users, others can only view their own
+    if (req.user.role === 'admin') {
+      reports = await Report.find()
+        .populate('userId', 'name email role')
+        .sort({ createdAt: -1 });
+    } else {
+      reports = await Report.find({ userId: req.user._id })
+        .populate('userId', 'name email role')
+        .sort({ createdAt: -1 });
+    }
+
+    // Calculate attendance statistics
+    const stats = {};
+    
+    reports.forEach(report => {
+      const userId = report.userId._id || report.userId;
+      const userName = report.userId?.name || report.userName;
+      
+      if (!stats[userId]) {
+        stats[userId] = {
+          name: userName,
+          presentDays: 0,
+          absentDays: 0,
+          totalDays: 0
+        };
+      }
+      
+      // Count as present if there's a report with attendance date
+      if (report.attendance?.date) {
+        stats[userId].presentDays += 1;
+      } else {
+        stats[userId].absentDays += 1;
+      }
+      
+      stats[userId].totalDays += 1;
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      data: stats,
+      count: Object.keys(stats).length
+    });
+  } catch (error) {
+    console.error("Error fetching attendance stats:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch attendance stats",
+      error: error.message 
+    });
+  }
+};
