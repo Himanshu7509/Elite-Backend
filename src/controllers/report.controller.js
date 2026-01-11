@@ -113,23 +113,58 @@ export const getUserReports = async (req, res) => {
       });
     }
 
-    let reports;
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Build query based on user role
+    let query = {};
+    if (req.user.role !== 'admin') {
+      query.userId = req.user._id;
+    }
+
+    // Add filters if provided
+    if (req.query.userId) {
+      query.userId = req.query.userId;
+    }
+    if (req.query.userName) {
+      query['userId.name'] = { $regex: req.query.userName, $options: 'i' };
+    }
+    if (req.query.startDate && req.query.endDate) {
+      query['attendance.date'] = { $gte: new Date(req.query.startDate), $lte: new Date(req.query.endDate) };
+    } else if (req.query.startDate) {
+      query['attendance.date'] = { $gte: new Date(req.query.startDate) };
+    } else if (req.query.endDate) {
+      query['attendance.date'] = { $lte: new Date(req.query.endDate) };
+    }
+
+    // Get total count
+    const totalCount = await Report.countDocuments(query);
     
-    // Admin can view all reports, others can only view their own
+    // Get paginated results
+    let reports;
     if (req.user.role === 'admin') {
-      reports = await Report.find()
+      reports = await Report.find(query)
         .populate('userId', 'name email role')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     } else {
-      reports = await Report.find({ userId: req.user._id })
+      reports = await Report.find({ ...query, userId: req.user._id })
         .populate('userId', 'name email role')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
     }
 
     res.status(200).json({ 
       success: true, 
       data: reports,
-      count: reports.length
+      count: reports.length,
+      totalPages: Math.ceil(totalCount / limit),
+      totalItems: totalCount,
+      currentPage: page
     });
   } catch (error) {
     console.error("Error fetching reports:", error);
