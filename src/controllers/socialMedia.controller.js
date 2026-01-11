@@ -145,13 +145,27 @@ export const getAllSocialMediaPosts = async (req, res) => {
       });
     }
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalCount = await SocialMedia.countDocuments();
+    
+    // Get paginated results
     const posts = await SocialMedia.find()
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({ 
       success: true, 
       data: posts,
-      count: posts.length
+      count: posts.length,
+      totalPages: Math.ceil(totalCount / limit),
+      totalItems: totalCount,
+      currentPage: page
     });
   } catch (error) {
     console.error("Error fetching social media posts:", error);
