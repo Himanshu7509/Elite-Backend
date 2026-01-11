@@ -129,7 +129,11 @@ export const getUserReports = async (req, res) => {
       query.userId = req.query.userId;
     }
     if (req.query.userName) {
-      query['userId.name'] = { $regex: req.query.userName, $options: 'i' };
+      // Support both full email and username (before @) for name filter
+      query.$or = [
+        { 'userId.name': { $regex: req.query.userName, $options: 'i' } },
+        { 'userName': { $regex: req.query.userName, $options: 'i' } }
+      ];
     }
     if (req.query.day) {
       // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
@@ -486,7 +490,7 @@ export const getAttendanceStats = async (req, res) => {
     
     reports.forEach(report => {
       const userId = report.userId._id || report.userId;
-      const userName = report.userId?.name || report.userName;
+      const userName = report.userId?.name || (report.userName && report.userName.split('@')[0]) || 'Unknown';
       
       if (!stats[userId]) {
         stats[userId] = {
