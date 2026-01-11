@@ -131,7 +131,23 @@ export const getUserReports = async (req, res) => {
     if (req.query.userName) {
       query['userId.name'] = { $regex: req.query.userName, $options: 'i' };
     }
-    if (req.query.startDate && req.query.endDate) {
+    if (req.query.day) {
+      // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
+      const dayMap = {
+        'sunday': 1,
+        'monday': 2,
+        'tuesday': 3,
+        'wednesday': 4,
+        'thursday': 5,
+        'friday': 6,
+        'saturday': 7
+      };
+      
+      const dayValue = dayMap[req.query.day.toLowerCase()];
+      if (dayValue) {
+        query['attendance.date'] = { $exists: true, $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] } };
+      }
+    } else if (req.query.startDate && req.query.endDate) {
       query['attendance.date'] = { $gte: new Date(req.query.startDate), $lte: new Date(req.query.endDate) };
     } else if (req.query.startDate) {
       query['attendance.date'] = { $gte: new Date(req.query.startDate) };
