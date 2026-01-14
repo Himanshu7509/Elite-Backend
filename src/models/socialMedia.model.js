@@ -13,12 +13,12 @@ const socialMediaSchema = new mongoose.Schema({
   platforms: {
     type: [String],
     required: true,
-    enum: ['facebook', 'instagram', 'whatsapp', 'linkedin', 'X']
+    enum: ['facebook', 'instagram', 'whatsapp', 'linkedin', 'X', 'youtube']
   },
   uploadType: {
     type: String,
     required: true,
-    enum: ['post', 'reel', 'flyer']
+    enum: ['post', 'reel', 'flyer', 'video']
   },
   flyerUrl: {
     type: String,

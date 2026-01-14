@@ -50,10 +50,10 @@ export const createSocialMediaPost = async (req, res) => {
       });
     }
 
-    // Handle file upload for posts and flyers
+    // Handle file upload for posts, flyers, and videos
     let imageUrl = null;
     let videoUrl = null;
-    if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
+    if ((uploadType === 'post' || uploadType === 'flyer' || uploadType === 'video') && req.file) {
       try {
         console.log("Uploading file to S3...");
         const s3Result = await uploadFileToS3(req.file, 'social-media');
@@ -107,10 +107,10 @@ export const createSocialMediaPost = async (req, res) => {
       platforms: platformArray,
       uploadType,
       date: parsedDate,
-      sourceUrl: (uploadType === 'reel' || uploadType === 'post') ? sourceUrl : null,
+      sourceUrl: (uploadType === 'reel' || uploadType === 'post' || uploadType === 'video') ? sourceUrl : null,
       flyerUrl: uploadType === 'flyer' ? (sourceUrl || flyerUrl) : null,
-      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : null,
-      videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : null,
+      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/')) || (uploadType === 'video' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : null,
+      videoUrl: ((uploadType === 'flyer' || uploadType === 'video') && req.file?.mimetype.startsWith('video/')) ? videoUrl : null,
       uploadedBy, // This can now be null
       uploadedByName,
       uploadedByEmail
@@ -278,10 +278,10 @@ export const updateSocialMediaPost = async (req, res) => {
       }
     }
 
-    // Handle file upload for posts and flyers
+    // Handle file upload for posts, flyers, and videos
     let imageUrl = existingPost.imageUrl;
     let videoUrl = existingPost.videoUrl;
-    if ((uploadType === 'post' || uploadType === 'flyer') && req.file) {
+    if ((uploadType === 'post' || uploadType === 'flyer' || uploadType === 'video') && req.file) {
       try {
         console.log("Uploading new file to S3 for update...");
         const s3Result = await uploadFileToS3(req.file, 'social-media');
@@ -311,10 +311,10 @@ export const updateSocialMediaPost = async (req, res) => {
       platforms: platformArray,
       uploadType: uploadType || existingPost.uploadType,
       date: parsedDate,
-      sourceUrl: (uploadType === 'reel' || uploadType === 'post') ? sourceUrl : existingPost.sourceUrl,
+      sourceUrl: (uploadType === 'reel' || uploadType === 'post' || uploadType === 'video') ? sourceUrl : existingPost.sourceUrl,
       flyerUrl: uploadType === 'flyer' ? (sourceUrl || flyerUrl) : existingPost.flyerUrl,
-      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : existingPost.imageUrl,
-      videoUrl: (uploadType === 'flyer' && req.file?.mimetype.startsWith('video/')) ? videoUrl : existingPost.videoUrl
+      imageUrl: (uploadType === 'post' || (uploadType === 'flyer' && req.file?.mimetype.startsWith('image/')) || (uploadType === 'video' && req.file?.mimetype.startsWith('image/'))) ? imageUrl : existingPost.imageUrl,
+      videoUrl: ((uploadType === 'flyer' || uploadType === 'video') && req.file?.mimetype.startsWith('video/')) ? videoUrl : existingPost.videoUrl
     };
 
     console.log("Updating post with data:", updateData);
@@ -393,6 +393,7 @@ export const getSocialMediaStats = async (req, res) => {
     const totalReels = posts.filter(post => post.uploadType === 'reel').length;
     const totalPostsType = posts.filter(post => post.uploadType === 'post').length;
     const totalFlyers = posts.filter(post => post.uploadType === 'flyer').length;
+    const totalVideos = posts.filter(post => post.uploadType === 'video').length;
     
     // Calculate team stats by uploadedByName
     const teamStats = {};
@@ -408,6 +409,8 @@ export const getSocialMediaStats = async (req, res) => {
         teamStats[name].reels++;
       } else if (post.uploadType === 'flyer') {
         teamStats[name].flyers++;
+      } else if (post.uploadType === 'video') {
+        teamStats[name].videos++;
       }
     });
     
@@ -418,6 +421,7 @@ export const getSocialMediaStats = async (req, res) => {
         totalReels,
         totalPostsType,
         totalFlyers,
+        totalVideos,
         teamStats
       }
     });
