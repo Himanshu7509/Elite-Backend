@@ -128,6 +128,7 @@ export const getUserReports = async (req, res) => {
     if (req.query.userId) {
       query.userId = req.query.userId;
     }
+    
     if (req.query.userName) {
       // Support both full email and username (before @) for name filter
       query.$or = [
@@ -135,6 +136,10 @@ export const getUserReports = async (req, res) => {
         { 'userName': { $regex: req.query.userName, $options: 'i' } }
       ];
     }
+    
+    // Handle date filtering
+    const dateConditions = [];
+    
     if (req.query.day) {
       // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
       const dayMap = {
@@ -149,14 +154,36 @@ export const getUserReports = async (req, res) => {
       
       const dayValue = dayMap[req.query.day.toLowerCase()];
       if (dayValue) {
-        query['attendance.date'] = { $exists: true, $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] } };
+        dateConditions.push({
+          $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
+        });
       }
-    } else if (req.query.startDate && req.query.endDate) {
-      query['attendance.date'] = { $gte: new Date(req.query.startDate), $lte: new Date(req.query.endDate) };
+    }
+    
+    // Handle date range filtering
+    if (req.query.startDate && req.query.endDate) {
+      dateConditions.push({
+        $gte: new Date(req.query.startDate),
+        $lte: new Date(req.query.endDate)
+      });
     } else if (req.query.startDate) {
-      query['attendance.date'] = { $gte: new Date(req.query.startDate) };
+      dateConditions.push({ $gte: new Date(req.query.startDate) });
     } else if (req.query.endDate) {
-      query['attendance.date'] = { $lte: new Date(req.query.endDate) };
+      // Set end of day for endDate
+      const endDate = new Date(req.query.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      dateConditions.push({ $lte: endDate });
+    }
+    
+    // Apply date conditions to query
+    if (dateConditions.length > 0) {
+      query['attendance.date'] = { $exists: true };
+      if (dateConditions.length === 1) {
+        Object.assign(query['attendance.date'], dateConditions[0]);
+      } else {
+        // Combine multiple conditions with $and
+        query['attendance.date'].$and = dateConditions;
+      }
     }
 
     // Get total count
