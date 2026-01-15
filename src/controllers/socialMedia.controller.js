@@ -134,7 +134,7 @@ export const createSocialMediaPost = async (req, res) => {
   }
 };
 
-// Get all social media posts
+// Get all social media posts with filtering
 export const getAllSocialMediaPosts = async (req, res) => {
   try {
     // Marketing users, managers, sales persons, and admin can view posts
@@ -150,11 +150,58 @@ export const getAllSocialMediaPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Get total count
-    const totalCount = await SocialMedia.countDocuments();
+    // Build filter object
+    const filter = {};
     
-    // Get paginated results
-    const posts = await SocialMedia.find()
+    // Product company filter
+    if (req.query.productCompany) {
+      filter.productCompany = req.query.productCompany;
+    }
+    
+    // Platform filter
+    if (req.query.platform) {
+      filter.platforms = req.query.platform;
+    }
+    
+    // Upload type filter
+    if (req.query.uploadType) {
+      filter.uploadType = req.query.uploadType;
+    }
+    
+    // Date range filters
+    if (req.query.startDate || req.query.endDate) {
+      filter.date = {};
+      if (req.query.startDate) {
+        filter.date.$gte = new Date(req.query.startDate);
+      }
+      if (req.query.endDate) {
+        const endDate = new Date(req.query.endDate);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        filter.date.$lte = endDate;
+      }
+    }
+    
+    // Uploaded by filter (search in name)
+    if (req.query.uploadedBy) {
+      filter.uploadedByName = { $regex: req.query.uploadedBy, $options: 'i' };
+    }
+    
+    // Search term filter (across multiple fields)
+    if (req.query.search) {
+      const searchRegex = new RegExp(req.query.search, 'i');
+      filter.$or = [
+        { productCompany: searchRegex },
+        { platforms: searchRegex },
+        { uploadType: searchRegex },
+        { uploadedByName: searchRegex }
+      ];
+    }
+
+    // Get total count with filters
+    const totalCount = await SocialMedia.countDocuments(filter);
+    
+    // Get paginated results with filters
+    const posts = await SocialMedia.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -165,7 +212,8 @@ export const getAllSocialMediaPosts = async (req, res) => {
       count: posts.length,
       totalPages: Math.ceil(totalCount / limit),
       totalItems: totalCount,
-      currentPage: page
+      currentPage: page,
+      filtersApplied: Object.keys(filter).length > 0 ? filter : null
     });
   } catch (error) {
     console.error("Error fetching social media posts:", error);
