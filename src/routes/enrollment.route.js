@@ -9,6 +9,7 @@ import {
   updateEducation,
   addRemark
 } from "../controllers/enrollment.controller.js";
+import { verifyToken } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -34,6 +35,6 @@ router.delete("/:id", deleteEnrollment);
 router.put("/:id/education", updateEducation);
 
 // Add remark
-router.post("/:id/remark", addRemark);
+router.post("/:id/remark", verifyToken, addRemark);
 
 export default router;

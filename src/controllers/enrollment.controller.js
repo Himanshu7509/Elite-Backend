@@ -597,7 +597,7 @@ export const addRemark = async (req, res) => {
       message,
       reminderDate: reminderDate ? new Date(reminderDate) : undefined,
       status,
-      createdBy: req.user._id,
+      createdBy: req.user._id, // This should now be available due to verifyToken middleware
       createdAt: new Date()
     };
     
