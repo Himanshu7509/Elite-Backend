@@ -1,5 +1,4 @@
 import Enrollment from "../models/enrollment.model.js";
-import Team from "../models/team.model.js";
 
 // Create a new enrollment
 export const createEnrollment = async (req, res) => {
@@ -135,6 +134,7 @@ export const getAllEnrollments = async (req, res) => {
       .populate('assignedBy', 'name email role')
       .populate('createdBy.userId', 'name email role')
       .populate('updatedBy.userId', 'name email role')
+      .populate('remarks.createdBy', 'name email')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ 
@@ -160,7 +160,8 @@ export const getEnrollmentById = async (req, res) => {
       .populate('assignedTo', 'name email role')
       .populate('assignedBy', 'name email role')
       .populate('createdBy.userId', 'name email role')
-      .populate('updatedBy.userId', 'name email role');
+      .populate('updatedBy.userId', 'name email role')
+      .populate('remarks.createdBy', 'name email');
 
     if (!enrollment) {
       return res.status(404).json({ 
@@ -459,13 +460,6 @@ export const updateEnrollmentDetails = async (req, res) => {
     if (state !== undefined) updateData.state = state;
     if (pincode !== undefined) updateData.pincode = pincode;
     
-    // Additional info
-    if (age !== undefined) updateData.age = age;
-    if (gender !== undefined) updateData.gender = gender;
-    if (location !== undefined) updateData.location = location;
-    if (qualification !== undefined) updateData.qualification = qualification;
-    
-    // Date fields
     if (date !== undefined) updateData.date = date;
     
     // If user is authenticated, update the updatedBy field
@@ -486,7 +480,8 @@ export const updateEnrollmentDetails = async (req, res) => {
     .populate('assignedTo', 'name email role')
     .populate('assignedBy', 'name email role')
     .populate('createdBy.userId', 'name email role')
-    .populate('updatedBy.userId', 'name email role');
+    .populate('updatedBy.userId', 'name email role')
+    .populate('remarks.createdBy', 'name email');
 
     if (!enrollment) {
       return res.status(404).json({ 
@@ -548,7 +543,8 @@ export const updateEducation = async (req, res) => {
     ).populate('assignedTo', 'name email role')
       .populate('assignedBy', 'name email role')
       .populate('createdBy.userId', 'name email role')
-      .populate('updatedBy.userId', 'name email role');
+      .populate('updatedBy.userId', 'name email role')
+      .populate('remarks.createdBy', 'name email');
     
     res.status(200).json({
       success: true,
