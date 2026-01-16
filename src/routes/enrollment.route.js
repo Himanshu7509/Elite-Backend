@@ -5,7 +5,9 @@ import {
   getEnrollmentById, 
   updateEnrollmentStatus, 
   updateEnrollmentDetails,
-  deleteEnrollment 
+  deleteEnrollment,
+  updateEducation,
+  addRemark
 } from "../controllers/enrollment.controller.js";
 
 const router = express.Router();
@@ -27,5 +29,11 @@ router.patch("/:id/details", updateEnrollmentDetails);
 
 // Delete enrollment
 router.delete("/:id", deleteEnrollment);
+
+// Update education
+router.put("/:id/education", updateEducation);
+
+// Add remark
+router.post("/:id/remark", addRemark);
 
 export default router;

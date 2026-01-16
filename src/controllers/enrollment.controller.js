@@ -43,6 +43,20 @@ export const createEnrollment = async (req, res) => {
         message: "Invalid product company. Must be one of: " + validProductCompanies.join(', ') 
       });
     }
+    
+    // Prepare created by information if user is authenticated
+    let createdByInfo = null;
+    let sourceType = source || 'other';
+    
+    if (req.user) {
+      createdByInfo = {
+        userId: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        name: req.user.name || req.user.email
+      };
+      sourceType = 'admin'; // Set source to admin if authenticated
+    }
 
     const newEnrollment = new Enrollment({
       // Basic fields
@@ -70,9 +84,9 @@ export const createEnrollment = async (req, res) => {
       assignedByName: assignedByName || null,
       
       // Tracking fields
-      createdBy: createdBy || null,
+      createdBy: createdBy || createdByInfo,
       updatedBy: updatedBy || null,
-      source: source || 'other',
+      source: sourceType,
       
       feedback: feedback || null,
       city: city || null,
@@ -119,6 +133,8 @@ export const getAllEnrollments = async (req, res) => {
     const enrollments = await Enrollment.find()
       .populate('assignedTo', 'name email role')
       .populate('assignedBy', 'name email role')
+      .populate('createdBy.userId', 'name email role')
+      .populate('updatedBy.userId', 'name email role')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ 
@@ -142,7 +158,9 @@ export const getEnrollmentById = async (req, res) => {
     const { id } = req.params;
     const enrollment = await Enrollment.findById(id)
       .populate('assignedTo', 'name email role')
-      .populate('assignedBy', 'name email role');
+      .populate('assignedBy', 'name email role')
+      .populate('createdBy.userId', 'name email role')
+      .populate('updatedBy.userId', 'name email role');
 
     if (!enrollment) {
       return res.status(404).json({ 
@@ -449,12 +467,26 @@ export const updateEnrollmentDetails = async (req, res) => {
     
     // Date fields
     if (date !== undefined) updateData.date = date;
+    
+    // If user is authenticated, update the updatedBy field
+    if (req.user) {
+      updateData.updatedBy = {
+        userId: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        name: req.user.name || req.user.email
+      };
+    }
 
     const enrollment = await Enrollment.findByIdAndUpdate(
       id, 
       updateData,
       { new: true, runValidators: true }
-    ).populate('assignedTo', 'name email role').populate('assignedBy', 'name email role');
+    )
+    .populate('assignedTo', 'name email role')
+    .populate('assignedBy', 'name email role')
+    .populate('createdBy.userId', 'name email role')
+    .populate('updatedBy.userId', 'name email role');
 
     if (!enrollment) {
       return res.status(404).json({ 
@@ -473,6 +505,124 @@ export const updateEnrollmentDetails = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: "Failed to update enrollment details",
+      error: error.message 
+    });
+  }
+};
+
+// Update education status
+export const updateEducation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { educationField } = req.body;
+    
+    // Validate education field
+    const validFields = ['tenth', 'twelfth', 'undergraduate', 'postgraduate', 'phd'];
+    if (!validFields.includes(educationField)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid education field" 
+      });
+    }
+    
+    // Check if user has permission to update this enrollment
+    let enrollment = await Enrollment.findById(id);
+    if (!enrollment) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Enrollment not found" 
+      });
+    }
+    
+    // Toggle the education field
+    const currentValue = enrollment.education && enrollment.education[educationField] ? enrollment.education[educationField] : false;
+    
+    const updatedEnrollment = await Enrollment.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          [`education.${educationField}`]: !currentValue
+        }
+      },
+      { new: true }
+    ).populate('assignedTo', 'name email role')
+      .populate('assignedBy', 'name email role')
+      .populate('createdBy.userId', 'name email role')
+      .populate('updatedBy.userId', 'name email role');
+    
+    res.status(200).json({
+      success: true,
+      message: "Education updated successfully",
+      data: updatedEnrollment
+    });
+  } catch (error) {
+    console.error("Error updating education:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to update education",
+      error: error.message 
+    });
+  }
+};
+
+// Add remark to an enrollment
+export const addRemark = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, reminderDate, status } = req.body;
+    
+    // Validate required fields
+    if (!message || !status) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Message and status are required" 
+      });
+    }
+    
+    // Check if user has permission to update this enrollment
+    const enrollment = await Enrollment.findById(id);
+    if (!enrollment) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Enrollment not found" 
+      });
+    }
+    
+    // Calculate the sequence number for the new remark
+    const sequenceNumber = enrollment.remarks ? enrollment.remarks.length + 1 : 1;
+    
+    // Create the new remark
+    const newRemark = {
+      sequenceNumber,
+      message,
+      reminderDate: reminderDate ? new Date(reminderDate) : undefined,
+      status,
+      createdBy: req.user._id,
+      createdAt: new Date()
+    };
+    
+    // Update the enrollment with the new remark
+    const updatedEnrollment = await Enrollment.findByIdAndUpdate(
+      id,
+      { $push: { remarks: newRemark } },
+      { new: true }
+    )
+    .populate('assignedTo', 'name email role')
+    .populate('assignedBy', 'name email role')
+    .populate('createdBy.userId', 'name email role')
+    .populate('updatedBy.userId', 'name email role')
+    .populate('remarks.createdBy', 'name email');
+    
+    res.status(200).json({
+      success: true,
+      message: "Remark added successfully",
+      data: updatedEnrollment
+    });
+  } catch (error) {
+    console.error("Error adding remark:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to add remark",
       error: error.message 
     });
   }

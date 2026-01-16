@@ -128,6 +128,29 @@ const enrollmentSchema = new mongoose.Schema({
     required: false
   },
   
+  // Education qualifications
+  education: {
+    type: {
+      tenth: { type: Boolean, default: false },
+      twelfth: { type: Boolean, default: false },
+      undergraduate: { type: Boolean, default: false },
+      postgraduate: { type: Boolean, default: false },
+      phd: { type: Boolean, default: false }
+    },
+    _id: false
+  },
+  
+  // Remarks system
+  remarks: [{
+    sequenceNumber: Number,
+    message: String,
+    reminderDate: Date,
+    status: String,
+    createdAt: { type: Date, default: Date.now },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Team" },
+    isActive: { type: Boolean, default: true }
+  }],
+  
   // Education & Experience
   experience: { type: String },
   specialisation: { type: String },
