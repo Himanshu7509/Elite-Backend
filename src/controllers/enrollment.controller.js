@@ -1,4 +1,5 @@
 import Enrollment from "../models/enrollment.model.js";
+import Team from "../models/team.model.js";
 
 // Create a new enrollment
 export const createEnrollment = async (req, res) => {
