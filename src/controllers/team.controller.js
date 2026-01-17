@@ -33,9 +33,9 @@ export const createTeamMember = async (req, res) => {
 // Get all team members
 export const getAllTeamMembers = async (req, res) => {
   try {
-    // Admin, manager, counselor, and telecaller can see all team members
-    if (req.user.role !== "admin" && req.user.role !== "manager" && req.user.role !== "counsellor" && req.user.role !== "telecaller") {
-      return res.status(403).json({ message: "Access denied. Admin, Manager, Counselor, or Telecaller rights required." });
+    // Admin, manager, counselor, HR, and telecaller can see all team members
+    if (req.user.role !== "admin" && req.user.role !== "manager" && req.user.role !== "counsellor" && req.user.role !== "hr" && req.user.role !== "telecaller") {
+      return res.status(403).json({ message: "Access denied. Admin, Manager, Counselor, HR, or Telecaller rights required." });
     }
 
     // Only include password for admin users

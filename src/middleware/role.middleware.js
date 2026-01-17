@@ -24,9 +24,9 @@ export const isAuthenticated = (req, res, next) => {
   next();
 };
 
-// Middleware to check if user has read access (admin, developer, analyst, marketing, sales, counsellor, telecaller)
+// Middleware to check if user has read access (admin, developer, analyst, marketing, sales, counsellor, HR, telecaller)
 export const hasReadAccess = (req, res, next) => {
-  const allowedRoles = ["admin", "developer", "analyst", "marketing", "sales", "counsellor", "telecaller"];
+  const allowedRoles = ["admin", "developer", "analyst", "marketing", "sales", "counsellor", "hr", "telecaller"];
   if (!allowedRoles.includes(req.user.role)) {
     return res.status(403).json({ message: "Access denied. Read access required." });
   }
