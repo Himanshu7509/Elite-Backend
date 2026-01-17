@@ -1,19 +1,22 @@
 import express from "express";
-import {
-  createTeamMember,
-  getAllTeamMembers,
-  deleteTeamMember,
-  getTeamMemberById,
-  updateTeamMember
-} from "../controllers/team.controller.js";
+import { createTeamMember, getAllTeamMembers, updateTeamMember, deleteTeamMember, getTeamMemberById } from "../controllers/team.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 
-const TeamRouter = express.Router();
+const router = express.Router();
 
-TeamRouter.post("/create", verifyToken, createTeamMember);
-TeamRouter.get("/get-all", verifyToken, getAllTeamMembers);
-TeamRouter.get("/:id", verifyToken, getTeamMemberById);
-TeamRouter.put("/:id", verifyToken, updateTeamMember);
-TeamRouter.delete("/:id", verifyToken, deleteTeamMember);
+// Create a new team member
+router.post("/create", verifyToken, createTeamMember);
 
-export default TeamRouter;
+// Get all team members
+router.get("/get-all", verifyToken, getAllTeamMembers);
+
+// Get team member by ID
+router.get("/:id", verifyToken, getTeamMemberById);
+
+// Update a team member
+router.put("/:id", verifyToken, updateTeamMember);
+
+// Delete a team member
+router.delete("/:id", verifyToken, deleteTeamMember);
+
+export default router;

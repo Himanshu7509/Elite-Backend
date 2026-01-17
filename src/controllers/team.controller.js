@@ -38,8 +38,14 @@ export const getAllTeamMembers = async (req, res) => {
       return res.status(403).json({ message: "Access denied. Admin, Manager, Counselor, or Telecaller rights required." });
     }
 
+    // Only include password for admin users
+    let selectFields = "name email role assignedLeads createdAt updatedAt";
+    if (req.user.role === "admin") {
+      selectFields = "name email role password assignedLeads createdAt updatedAt"; // Include password for admin
+    }
+
     const members = await Team.find()
-      .select("-password")
+      .select(selectFields)
       .populate({
         path: "assignedLeads",
         select: "fullName email phoneNo status assignedTo assignedBy assignedByName",
@@ -53,7 +59,8 @@ export const getAllTeamMembers = async (req, res) => {
             select: "name email"
           }
         ]
-      });
+      })
+      .sort({ createdAt: -1 });
     
     res.status(200).json({ success: true, data: members });
   } catch (error) {
@@ -118,7 +125,27 @@ export const deleteTeamMember = async (req, res) => {
 export const getTeamMemberById = async (req, res) => {
   try {
     const { id } = req.params;
-    const member = await Team.findById(id).select("-password");
+    
+    // Only include password for admin users
+    let selectFields = "name email role assignedLeads createdAt updatedAt";
+    if (req.user.role === "admin") {
+      selectFields = "name email role password assignedLeads createdAt updatedAt"; // Include password for admin
+    }
+    
+    const member = await Team.findById(id).select(selectFields).populate({
+      path: "assignedLeads",
+      select: "fullName email phoneNo status assignedTo assignedBy assignedByName",
+      populate: [
+        {
+          path: "assignedTo",
+          select: "name email"
+        },
+        {
+          path: "assignedBy",
+          select: "name email"
+        }
+      ]
+    });
     
     if (!member) {
       return res.status(404).json({ message: "Team member not found" });
