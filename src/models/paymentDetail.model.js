@@ -8,30 +8,35 @@ const paymentDetailSchema = new mongoose.Schema({
   },
   details: {
     type: String,
-    required: true,
+    required: false,
   },
   uploadImg: {
     type: String, 
     required: true,
   },
-  // New fields for monthly billing
+  // Flexible billing fields - all optional
   startDate: {
     type: Date,
-    required: true,
+    required: false,
   },
   endDate: {
     type: Date,
-    required: true,
+    required: false,
   },
   amount: {
     type: Number,
-    required: true,
+    required: false,
     min: 0,
   },
   currency: {
     type: String,
     default: "INR",
     enum: ["INR", "USD", "EUR"],
+  },
+  billingType: {
+    type: String,
+    default: "one-time",
+    enum: ["one-time", "monthly", "yearly", "quarterly"],
   },
   status: {
     type: String,

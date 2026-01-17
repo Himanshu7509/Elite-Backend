@@ -26,37 +26,31 @@ const uploadToS3 = async (file) => {
 // POST: Create Payment Detail
 export const createPaymentDetail = async (req, res) => {
   try {
-    const { name, details, startDate, endDate, amount, currency, status, reminderDate } = req.body;
-    if (!req.file) return res.status(400).json({ message: "Image is required" });
+    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate } = req.body;
+    if (!req.file) return res.status(400).json({ message: "Image/document is required" });
     
-    // Validate required fields
-    if (!startDate || !endDate || !amount) {
-      return res.status(400).json({ message: "Start date, end date, and amount are required" });
-    }
+    // Prepare the payment detail data with tracking information
+    const paymentData = { name };
     
-    // Validate date range
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
-      return res.status(400).json({ message: "End date must be after start date" });
+    // Add optional fields if provided
+    if (details) paymentData.details = details;
+    if (startDate) paymentData.startDate = new Date(startDate);
+    if (endDate) paymentData.endDate = new Date(endDate);
+    if (amount) paymentData.amount = parseFloat(amount);
+    if (currency) paymentData.currency = currency;
+    if (billingType) paymentData.billingType = billingType;
+    if (status) paymentData.status = status;
+    if (reminderDate) paymentData.reminderDate = new Date(reminderDate);
+    
+    // Validate date range if both dates are provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (start >= end) {
+        return res.status(400).json({ message: "End date must be after start date" });
+      }
     }
 
-    // Prepare the payment detail data with tracking information
-    const paymentData = { 
-      name, 
-      details, 
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
-      amount: parseFloat(amount),
-      currency: currency || "INR",
-      status: status || "pending"
-    };
-    
-    // Add reminder date if provided
-    if (reminderDate) {
-      paymentData.reminderDate = new Date(reminderDate);
-    }
-    
     // If user is authenticated, track who created the payment detail
     if (req.user) {
       // Set creator email and role for all users
