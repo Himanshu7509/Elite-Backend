@@ -662,5 +662,143 @@ export const addRemark = async (req, res) => {
   }
 };
 
+// ✅ Get lead statistics
+export const getLeadStats = async (req, res) => {
+  try {
+    const user = req.user;
+    let filter = {};
+
+    if (user.role === "admin" || user.role === "manager") {
+      // Admin and manager can see all leads
+      filter = {};
+    } else if (user.role === "counsellor" || user.role === "telecaller") {
+      // Counsellor and Telecaller can see all leads
+      filter = {};
+    } else if (user.role === "sales" || user.role === "marketing") {
+      // Sales and Marketing can see:
+      // 1. Leads assigned to them
+      // 2. Unassigned leads (not assigned to anyone)
+      // But NOT leads assigned to other sales or marketing persons
+      const teamMember = await Team.findOne({ email: user.email });
+
+      if (!teamMember) {
+        return res.status(404).json({ message: "Sales or Marketing team member not found" });
+      }
+
+      // Filter to show leads assigned to this member OR unassigned leads
+      filter = {
+        $or: [
+          { assignedTo: teamMember._id }, // Leads assigned to this sales or marketing person
+          { assignedTo: null } // Unassigned leads
+        ]
+      };
+    } else {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    // Get all leads based on permissions
+    const allLeads = await Form.find(filter);
+    
+    // Calculate lead statistics by product company
+    const productCompanyStats = {};
+    allLeads.forEach(lead => {
+      const productCompany = lead.productCompany || 'Uncategorized';
+      if (!productCompanyStats[productCompany]) {
+        productCompanyStats[productCompany] = {
+          total: 0,
+          unread: 0,
+          read: 0,
+          interested: 0,
+          not_interested: 0,
+          converted: 0
+        };
+      }
+      
+      productCompanyStats[productCompany].total++;
+      
+      // Count by status
+      if (lead.status === 'unread') {
+        productCompanyStats[productCompany].unread++;
+      } else if (lead.status === 'read') {
+        productCompanyStats[productCompany].read++;
+      } else if (lead.status === 'interested') {
+        productCompanyStats[productCompany].interested++;
+      } else if (lead.status === 'not_interested') {
+        productCompanyStats[productCompany].not_interested++;
+      } else if (lead.status === 'converted' || lead.status === 'confirmed') {
+        productCompanyStats[productCompany].converted++;
+      }
+    });
+    
+    // Calculate daily lead trends for the last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const dailyTrends = await Form.aggregate([
+      { $match: { ...filter, createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" }
+          },
+          count: { $sum: 1 },
+          productCompany: { $push: "$productCompany" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+    ]);
+    
+    // Convert aggregate result to daily trend data
+    const dailyTrendData = dailyTrends.map(trend => {
+      const dateStr = `${trend._id.year}-${trend._id.month.toString().padStart(2, '0')}-${trend._id.day.toString().padStart(2, '0')}`;
+      return {
+        date: dateStr,
+        count: trend.count
+      };
+    });
+    
+    // Calculate team statistics by role
+    const teamMembers = await Team.find({});
+    const teamRoleStats = {};
+    
+    for (const member of teamMembers) {
+      // Get leads assigned to this team member
+      const assignedLeads = allLeads.filter(lead => {
+        if (typeof lead.assignedTo === 'string') {
+          return lead.assignedTo === member._id.toString();
+        } else if (lead.assignedTo && lead.assignedTo._id) {
+          return lead.assignedTo._id.toString() === member._id.toString();
+        }
+        return false;
+      });
+      
+      teamRoleStats[member.name] = {
+        role: member.role,
+        totalAssigned: assignedLeads.length,
+        interested: assignedLeads.filter(lead => lead.status === 'interested').length,
+        converted: assignedLeads.filter(lead => lead.status === 'converted' || lead.status === 'confirmed').length,
+        totalLeads: assignedLeads.length
+      };
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        productCompanyStats,
+        dailyTrendData,
+        teamRoleStats
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching lead statistics:", error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // Export the upload middleware
 export { upload };

@@ -11,7 +11,8 @@ import {
   updateFormDetails,
   deleteLead,
   updateEducation,
-  addRemark
+  addRemark,
+  getLeadStats
 } from "../controllers/form.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/optionalAuth.middleware.js";
@@ -38,5 +39,8 @@ formRouter.put("/update-education/:id", verifyToken, updateEducation);
 
 // Route for adding remarks
 formRouter.post("/add-remark/:id", verifyToken, addRemark);
+
+// Route for lead statistics
+formRouter.get("/stats", verifyToken, getLeadStats);
 
 export default formRouter;
