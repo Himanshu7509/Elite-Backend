@@ -730,7 +730,7 @@ export const getLeadStats = async (req, res) => {
       }
     });
     
-    // Calculate daily lead trends for the last 30 days
+    // Calculate daily lead trends by product company for the last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
@@ -739,55 +739,74 @@ export const getLeadStats = async (req, res) => {
       {
         $group: {
           _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-            day: { $dayOfMonth: "$createdAt" }
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            productCompany: "$productCompany"
           },
-          count: { $sum: 1 },
-          productCompany: { $push: "$productCompany" }
+          count: { $sum: 1 }
         }
       },
-      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+      {
+        $group: {
+          _id: "$_id.date",
+          products: {
+            $push: {
+              productCompany: "$_id.productCompany",
+              count: "$count"
+            }
+          }
+        }
+      },
+      { $sort: { "_id": 1 } }
     ]);
     
-    // Convert aggregate result to daily trend data
-    const dailyTrendData = dailyTrends.map(trend => {
-      const dateStr = `${trend._id.year}-${trend._id.month.toString().padStart(2, '0')}-${trend._id.day.toString().padStart(2, '0')}`;
-      return {
-        date: dateStr,
-        count: trend.count
-      };
+    // Convert aggregate result to daily trend data by product company
+    const productCompanies = new Set();
+    const dailyTrendData = [];
+    
+    dailyTrends.forEach(day => {
+      const dayData = { date: day._id };
+      day.products.forEach(product => {
+        const companyName = product.productCompany || 'Uncategorized';
+        dayData[companyName] = product.count;
+        productCompanies.add(companyName);
+      });
+      dailyTrendData.push(dayData);
     });
     
-    // Calculate team statistics by role
-    const teamMembers = await Team.find({});
-    const teamRoleStats = {};
+    // Get all unique dates
+    const allDates = [...new Set(dailyTrendData.map(item => item.date))].sort();
     
-    for (const member of teamMembers) {
-      // Get leads assigned to this team member
-      const assignedLeads = allLeads.filter(lead => {
-        if (typeof lead.assignedTo === 'string') {
-          return lead.assignedTo === member._id.toString();
-        } else if (lead.assignedTo && lead.assignedTo._id) {
-          return lead.assignedTo._id.toString() === member._id.toString();
-        }
-        return false;
+    // Create complete dataset with zeros for missing data
+    const completeTrendData = allDates.map(date => {
+      const dayData = { date };
+      productCompanies.forEach(company => {
+        const found = dailyTrendData.find(d => d.date === date);
+        dayData[company] = found && found[company] ? found[company] : 0;
       });
-      
-      teamRoleStats[member.name] = {
-        role: member.role,
-        totalAssigned: assignedLeads.length,
-        interested: assignedLeads.filter(lead => lead.status === 'interested').length,
-        converted: assignedLeads.filter(lead => lead.status === 'converted' || lead.status === 'confirmed').length,
-        totalLeads: assignedLeads.length
-      };
-    }
+      return dayData;
+    });
+    
+    // Calculate team role distribution (count of team members by role)
+    const teamRoles = await Team.aggregate([
+      {
+        $group: {
+          _id: "$role",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Convert to the format expected by frontend
+    const teamRoleStats = {};
+    teamRoles.forEach(role => {
+      teamRoleStats[role._id] = role.count;
+    });
     
     res.status(200).json({
       success: true,
       data: {
         productCompanyStats,
-        dailyTrendData,
+        dailyTrendData: completeTrendData, // Use the new complete trend data
         teamRoleStats
       }
     });
