@@ -28,6 +28,40 @@ export const notifyNewLead = async (assignedUserId, leadData) => {
   }
 };
 
+// New lead notification for admins (not assigned to them)
+export const notifyNewLeadToAdmin = async (adminUserId, leadData, assignedToUser = null) => {
+  try {
+    let message = `A new lead "${leadData.fullName}" has been created`;
+    if (assignedToUser) {
+      message += ` and assigned to ${assignedToUser.name || assignedToUser.email}`;
+    }
+    
+    const notificationData = {
+      title: 'New Lead Created',
+      message: message,
+      type: 'lead',
+      priority: 'medium',
+      entityId: leadData._id,
+      entityType: 'Lead',
+      metadata: {
+        leadId: leadData._id?.toString(),
+        leadName: leadData.fullName,
+        email: leadData.email,
+        phone: leadData.phone,
+        assignedTo: assignedToUser ? {
+          id: assignedToUser._id?.toString(),
+          name: assignedToUser.name,
+          email: assignedToUser.email
+        } : null
+      }
+    };
+
+    await sendNotification(adminUserId, notificationData);
+  } catch (error) {
+    console.error('Error sending new lead notification to admin:', error);
+  }
+};
+
 // New team member notification
 export const notifyNewTeamMember = async (adminUserId, memberData) => {
   try {
@@ -240,5 +274,6 @@ export default {
   notifyNewEnrollment,
   notifyNewInternApplication,
   notifyNewSocialMediaPost,
-  notifyUser
+  notifyUser,
+  notifyNewLeadToAdmin
 };

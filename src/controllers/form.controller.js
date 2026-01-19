@@ -3,7 +3,7 @@ import Team from "../models/team.model.js";
 import { uploadFileToS3 } from "../utils/s3Upload.js";
 import s3 from "../config/s3.js";
 import multer from "multer";
-import { notifyNewLead } from "../utils/notificationHelper.js";
+import { notifyNewLead, notifyNewLeadToAdmin } from "../utils/notificationHelper.js";
 
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
@@ -87,6 +87,27 @@ export const createForm = async (req, res) => {
         console.error('Error sending lead assignment notification:', notificationError);
         // Don't fail the main operation if notification fails
       }
+    }
+    
+    // Also notify admins about all new leads
+    try {
+      const admins = await Team.find({ role: 'admin' });
+      
+      // Get assigned user details if the lead is assigned
+      let assignedUser = null;
+      if (savedForm.assignedTo) {
+        assignedUser = await Team.findById(savedForm.assignedTo);
+      }
+      
+      for (const admin of admins) {
+        // Don't send duplicate notification to admin if they are the assigned user
+        if (admin._id.toString() !== savedForm.assignedTo?.toString()) {
+          await notifyNewLeadToAdmin(admin._id, savedForm, assignedUser);
+        }
+      }
+    } catch (adminNotificationError) {
+      console.error('Error sending admin notification:', adminNotificationError);
+      // Don't fail the main operation if admin notification fails
     }
     
     res.status(201).json(savedForm);
