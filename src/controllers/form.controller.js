@@ -3,6 +3,7 @@ import Team from "../models/team.model.js";
 import { uploadFileToS3 } from "../utils/s3Upload.js";
 import s3 from "../config/s3.js";
 import multer from "multer";
+import { notifyNewLead } from "../utils/notificationHelper.js";
 
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
@@ -75,6 +76,16 @@ export const createForm = async (req, res) => {
         await Team.findByIdAndUpdate(teamMember._id, {
           $addToSet: { assignedLeads: savedForm._id },
         });
+      }
+    }
+    
+    // Send notification if lead is assigned to someone
+    if (savedForm.assignedTo) {
+      try {
+        await notifyNewLead(savedForm.assignedTo, savedForm);
+      } catch (notificationError) {
+        console.error('Error sending lead assignment notification:', notificationError);
+        // Don't fail the main operation if notification fails
       }
     }
     

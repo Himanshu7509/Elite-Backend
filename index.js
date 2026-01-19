@@ -16,6 +16,7 @@ import EnrollmentRouter from "./src/routes/enrollment.route.js"; // Add this imp
 import CompanyRouter from "./src/routes/company.route.js"; // Add this import
 import ReportRouter from './src/routes/report.route.js'; // Add report router
 import InternAppliedDataRouter from './src/routes/internAppliedData.route.js'; // Add intern applied data router
+import NotificationRouter from './src/routes/notification.route.js'; // Add notification router
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -68,6 +69,7 @@ app.use('/enrollment', EnrollmentRouter) // Add this route
 app.use('/companies', CompanyRouter) // Add this route
 app.use('/reports', ReportRouter); // Add report route
 app.use('/intern-applied-data', InternAppliedDataRouter); // Add intern applied data route
+app.use('/notifications', NotificationRouter); // Add notification route
 
 dbConnect();
 

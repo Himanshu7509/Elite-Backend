@@ -1,5 +1,6 @@
 import Team from "../models/team.model.js";
 import bcrypt from "bcryptjs";
+import { notifyNewTeamMember } from "../utils/notificationHelper.js";
 
 // Create a new team member
 export const createTeamMember = async (req, res) => {
@@ -23,8 +24,21 @@ export const createTeamMember = async (req, res) => {
       role: role || "sales",
     });
 
-    await newMember.save();
-    res.status(201).json({ success: true, data: newMember });
+    const savedMember = await newMember.save();
+    
+    // Send notification to admin about new team member
+    try {
+      // Find all admin users to notify them
+      const admins = await Team.find({ role: 'admin' });
+      for (const admin of admins) {
+        await notifyNewTeamMember(admin._id, savedMember);
+      }
+    } catch (notificationError) {
+      console.error('Error sending team member notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+    
+    res.status(201).json({ success: true, data: savedMember });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
