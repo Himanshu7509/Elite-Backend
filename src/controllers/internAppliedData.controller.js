@@ -280,31 +280,34 @@ export const updateInternApplication = async (req, res) => {
     let photoUrl = application.photoUrl;
 
     if (req.files) {
-      for (const file of req.files) {
-        if (file.fieldname === 'resume') {
-          try {
-            const s3Result = await uploadFileToS3(file, 'intern-applications');
-            resumeUrl = s3Result.Location;
-          } catch (uploadError) {
-            console.error('Error uploading resume to S3:', uploadError);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to upload resume',
-              error: uploadError.message
-            });
-          }
-        } else if (file.fieldname === 'photo') {
-          try {
-            const s3Result = await uploadFileToS3(file, 'intern-applications');
-            photoUrl = s3Result.Location;
-          } catch (uploadError) {
-            console.error('Error uploading photo to S3:', uploadError);
-            return res.status(500).json({
-              success: false,
-              message: 'Failed to upload photo',
-              error: uploadError.message
-            });
-          }
+      // req.files is an object where keys are field names and values are arrays of files
+      if (req.files.resume && Array.isArray(req.files.resume) && req.files.resume.length > 0) {
+        try {
+          const resumeFile = req.files.resume[0];
+          const s3Result = await uploadFileToS3(resumeFile, 'intern-applications');
+          resumeUrl = s3Result.Location;
+        } catch (uploadError) {
+          console.error('Error uploading resume to S3:', uploadError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to upload resume',
+            error: uploadError.message
+          });
+        }
+      }
+      
+      if (req.files.photo && Array.isArray(req.files.photo) && req.files.photo.length > 0) {
+        try {
+          const photoFile = req.files.photo[0];
+          const s3Result = await uploadFileToS3(photoFile, 'intern-applications');
+          photoUrl = s3Result.Location;
+        } catch (uploadError) {
+          console.error('Error uploading photo to S3:', uploadError);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to upload photo',
+            error: uploadError.message
+          });
         }
       }
     }
