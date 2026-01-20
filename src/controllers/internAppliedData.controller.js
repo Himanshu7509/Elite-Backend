@@ -220,7 +220,10 @@ export const getInternApplicationById = async (req, res) => {
 export const updateInternApplication = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, email, phoneNo1, phoneNo2, postAppliedFor, productCompany, status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus, admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure, feedback, city, state, pincode, assignedTo, assignedBy, assignedByName } = req.body;
+    const { fullName, email, phoneNo1, phoneNo2, postAppliedFor, productCompany, status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus, admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure, feedback, city, state, pincode, assignedTo, assignedBy, assignedByName, // Personal Information
+    fatherName, fathersContactNo, address, gender, dateOfBirth, age, maritalStatus, category, nationality, religion, // Education Information
+    highestDegree, specialization, collegeOrInstituteName, schoolName, experience, skills, previousCompany, previousSalary, // Application Information
+    modeOfTraining, expectedJoiningDate, expectedSalary, currentSalary, noticePeriod, source: sourceField, sourceName } = req.body;
 
     const application = await InternAppliedData.findById(id);
     if (!application) {
@@ -333,7 +336,35 @@ export const updateInternApplication = async (req, res) => {
         pincode: pincode !== undefined ? pincode : application.pincode,
         assignedTo: assignedTo !== undefined ? assignedTo : application.assignedTo,
         assignedBy: assignedBy !== undefined ? assignedBy : application.assignedBy,
-        assignedByName: assignedByName !== undefined ? assignedByName : application.assignedByName
+        assignedByName: assignedByName !== undefined ? assignedByName : application.assignedByName,
+        // Personal Information
+        fatherName: fatherName !== undefined ? fatherName : application.fatherName,
+        fathersContactNo: fathersContactNo !== undefined ? fathersContactNo : application.fathersContactNo,
+        address: address !== undefined ? address : application.address,
+        gender: gender !== undefined ? gender : application.gender,
+        dateOfBirth: dateOfBirth !== undefined ? dateOfBirth : application.dateOfBirth,
+        age: age !== undefined ? age : application.age,
+        maritalStatus: maritalStatus !== undefined ? maritalStatus : application.maritalStatus,
+        category: category !== undefined ? category : application.category,
+        nationality: nationality !== undefined ? nationality : application.nationality,
+        religion: religion !== undefined ? religion : application.religion,
+        // Education Information
+        highestDegree: highestDegree !== undefined ? highestDegree : application.highestDegree,
+        specialization: specialization !== undefined ? specialization : application.specialization,
+        collegeOrInstituteName: collegeOrInstituteName !== undefined ? collegeOrInstituteName : application.collegeOrInstituteName,
+        schoolName: schoolName !== undefined ? schoolName : application.schoolName,
+        experience: experience !== undefined ? experience : application.experience,
+        skills: skills !== undefined ? skills : application.skills,
+        previousCompany: previousCompany !== undefined ? previousCompany : application.previousCompany,
+        previousSalary: previousSalary !== undefined ? previousSalary : application.previousSalary,
+        // Application Information
+        modeOfTraining: modeOfTraining !== undefined ? modeOfTraining : application.modeOfTraining,
+        expectedJoiningDate: expectedJoiningDate !== undefined ? expectedJoiningDate : application.expectedJoiningDate,
+        expectedSalary: expectedSalary !== undefined ? expectedSalary : application.expectedSalary,
+        currentSalary: currentSalary !== undefined ? currentSalary : application.currentSalary,
+        noticePeriod: noticePeriod !== undefined ? noticePeriod : application.noticePeriod,
+        source: sourceField !== undefined ? sourceField : application.source,
+        sourceName: sourceName !== undefined ? sourceName : application.sourceName
       },
       { new: true, runValidators: true }
     );
