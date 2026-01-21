@@ -224,8 +224,12 @@ export const updateInternApplication = async (req, res) => {
     // Debug logging to see what's in the request
     console.log('Update request received for ID:', id);
     console.log('Request body keys:', Object.keys(req.body || {}));
+    console.log('Request body values:', req.body);
     console.log('Request files present:', !!req.files);
-    console.log('Request user (if authenticated):', req.user ? 'Present' : 'Not present');
+    if (req.files) {
+      console.log('Request files keys:', Object.keys(req.files));
+    }
+    console.log('Request user (if authenticated):', req.user ? { _id: req.user._id, email: req.user.email, role: req.user.role } : 'Not present');
     
     const { fullName, email, phoneNo1, phoneNo2, postAppliedFor, productCompany, status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus, admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure, feedback, city, state, pincode, assignedTo, assignedBy, assignedByName, // Personal Information
     fatherName, fathersContactNo, address, gender, dateOfBirth, age, maritalStatus, category, nationality, religion, // Education Information
@@ -249,8 +253,8 @@ export const updateInternApplication = async (req, res) => {
     }
 
     // Validate fields only if they are provided and not empty
-    if (fullName !== undefined && fullName !== null && fullName !== '') {
-      if (!fullName.trim()) {
+    if (fullName !== undefined && fullName !== null && fullName !== '' && fullName !== 'null' && fullName !== 'undefined') {
+      if (typeof fullName === 'string' && !fullName.trim()) {
         return res.status(400).json({
           success: false,
           message: 'Full name is required.'
@@ -258,9 +262,9 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (email !== undefined && email !== null && email !== '') {
+    if (email !== undefined && email !== null && email !== '' && email !== 'null' && email !== 'undefined') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
+      if (typeof email === 'string' && !emailRegex.test(email)) {
         return res.status(400).json({
           success: false,
           message: 'Please provide a valid email address.'
@@ -268,9 +272,9 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (phoneNo1 !== undefined && phoneNo1 !== null && phoneNo1 !== '') {
+    if (phoneNo1 !== undefined && phoneNo1 !== null && phoneNo1 !== '' && phoneNo1 !== 'null' && phoneNo1 !== 'undefined') {
       const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-      if (!phoneRegex.test(phoneNo1)) {
+      if (typeof phoneNo1 === 'string' && !phoneRegex.test(phoneNo1)) {
         return res.status(400).json({
           success: false,
           message: 'Please provide a valid phone number 1.'
@@ -278,9 +282,9 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (phoneNo2 !== undefined && phoneNo2 !== null && phoneNo2 !== '') {
+    if (phoneNo2 !== undefined && phoneNo2 !== null && phoneNo2 !== '' && phoneNo2 !== 'null' && phoneNo2 !== 'undefined') {
       const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-      if (!phoneRegex.test(phoneNo2)) {
+      if (typeof phoneNo2 === 'string' && !phoneRegex.test(phoneNo2)) {
         return res.status(400).json({
           success: false,
           message: 'Please provide a valid phone number 2.'
@@ -327,64 +331,176 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
+    // Prepare update object by filtering out fields that shouldn't be updated
+    const updateObject = {};
+    
+    // Only add fields to update object if they are explicitly provided and not empty strings
+    if (fullName !== undefined && fullName !== null && fullName !== '' && fullName !== 'null' && fullName !== 'undefined') {
+      updateObject.fullName = fullName;
+    }
+    if (email !== undefined && email !== null && email !== '' && email !== 'null' && email !== 'undefined') {
+      updateObject.email = email;
+    }
+    if (phoneNo1 !== undefined && phoneNo1 !== null && phoneNo1 !== '' && phoneNo1 !== 'null' && phoneNo1 !== 'undefined') {
+      updateObject.phoneNo1 = phoneNo1;
+    }
+    if (phoneNo2 !== undefined && phoneNo2 !== null && phoneNo2 !== '' && phoneNo2 !== 'null' && phoneNo2 !== 'undefined') {
+      updateObject.phoneNo2 = phoneNo2;
+    }
+    if (postAppliedFor !== undefined && postAppliedFor !== null && postAppliedFor !== '' && postAppliedFor !== 'null' && postAppliedFor !== 'undefined') {
+      updateObject.postAppliedFor = postAppliedFor;
+    }
+    if (productCompany !== undefined && productCompany !== null && productCompany !== '' && productCompany !== 'null' && productCompany !== 'undefined') {
+      updateObject.productCompany = productCompany;
+    }
+    
+    // Always update URLs if files were uploaded
+    updateObject.resumeUrl = resumeUrl;
+    updateObject.photoUrl = photoUrl;
+    
+    // Update tracking fields if provided
+    if (status !== undefined && status !== null && status !== '' && status !== 'null' && status !== 'undefined') {
+      updateObject.status = status;
+    }
+    if (callStatus !== undefined && callStatus !== null && callStatus !== '' && callStatus !== 'null' && callStatus !== 'undefined') {
+      updateObject.callStatus = callStatus;
+    }
+    if (interviewRoundStatus !== undefined && interviewRoundStatus !== null && interviewRoundStatus !== '' && interviewRoundStatus !== 'null' && interviewRoundStatus !== 'undefined') {
+      updateObject.interviewRoundStatus = interviewRoundStatus;
+    }
+    if (aptitudeRoundStatus !== undefined && aptitudeRoundStatus !== null && aptitudeRoundStatus !== '' && aptitudeRoundStatus !== 'null' && aptitudeRoundStatus !== 'undefined') {
+      updateObject.aptitudeRoundStatus = aptitudeRoundStatus;
+    }
+    if (hrRoundStatus !== undefined && hrRoundStatus !== null && hrRoundStatus !== '' && hrRoundStatus !== 'null' && hrRoundStatus !== 'undefined') {
+      updateObject.hrRoundStatus = hrRoundStatus;
+    }
+    if (admissionLetter !== undefined && admissionLetter !== null && admissionLetter !== '' && admissionLetter !== 'null' && admissionLetter !== 'undefined') {
+      updateObject.admissionLetter = admissionLetter;
+    }
+    if (feesStatus !== undefined && feesStatus !== null && feesStatus !== '' && feesStatus !== 'null' && feesStatus !== 'undefined') {
+      updateObject.feesStatus = feesStatus;
+    }
+    if (paymentMethod !== undefined && paymentMethod !== null && paymentMethod !== '' && paymentMethod !== 'null' && paymentMethod !== 'undefined') {
+      updateObject.paymentMethod = paymentMethod;
+    }
+    if (feesInstallmentStructure !== undefined && feesInstallmentStructure !== null && feesInstallmentStructure !== '' && feesInstallmentStructure !== 'null' && feesInstallmentStructure !== 'undefined') {
+      updateObject.feesInstallmentStructure = feesInstallmentStructure;
+    }
+    if (feedback !== undefined && feedback !== null && feedback !== '' && feedback !== 'null' && feedback !== 'undefined') {
+      updateObject.feedback = feedback;
+    }
+    if (city !== undefined && city !== null && city !== '' && city !== 'null' && city !== 'undefined') {
+      updateObject.city = city;
+    }
+    if (state !== undefined && state !== null && state !== '' && state !== 'null' && state !== 'undefined') {
+      updateObject.state = state;
+    }
+    if (pincode !== undefined && pincode !== null && pincode !== '' && pincode !== 'null' && pincode !== 'undefined') {
+      updateObject.pincode = pincode;
+    }
+    if (assignedTo !== undefined && assignedTo !== null && assignedTo !== 'null' && assignedTo !== 'undefined') {
+      updateObject.assignedTo = assignedTo;
+    }
+    if (assignedBy !== undefined && assignedBy !== null && assignedBy !== 'null' && assignedBy !== 'undefined') {
+      updateObject.assignedBy = assignedBy;
+    }
+    if (assignedByName !== undefined && assignedByName !== null && assignedByName !== '' && assignedByName !== 'null' && assignedByName !== 'undefined') {
+      updateObject.assignedByName = assignedByName;
+    }
+    // Personal Information
+    if (fatherName !== undefined && fatherName !== null && fatherName !== '' && fatherName !== 'null' && fatherName !== 'undefined') {
+      updateObject.fatherName = fatherName;
+    }
+    if (fathersContactNo !== undefined && fathersContactNo !== null && fathersContactNo !== '' && fathersContactNo !== 'null' && fathersContactNo !== 'undefined') {
+      updateObject.fathersContactNo = fathersContactNo;
+    }
+    if (address !== undefined && address !== null && address !== '' && address !== 'null' && address !== 'undefined') {
+      updateObject.address = address;
+    }
+    if (gender !== undefined && gender !== null && gender !== '' && gender !== 'null' && gender !== 'undefined') {
+      updateObject.gender = gender;
+    }
+    if (dateOfBirth !== undefined && dateOfBirth !== null && dateOfBirth !== '' && dateOfBirth !== 'null' && dateOfBirth !== 'undefined') {
+      updateObject.dateOfBirth = dateOfBirth;
+    }
+    if (age !== undefined && age !== null && age !== '' && age !== 'null' && age !== 'undefined') {
+      updateObject.age = age;
+    }
+    if (maritalStatus !== undefined && maritalStatus !== null && maritalStatus !== '' && maritalStatus !== 'null' && maritalStatus !== 'undefined') {
+      updateObject.maritalStatus = maritalStatus;
+    }
+    if (category !== undefined && category !== null && category !== '' && category !== 'null' && category !== 'undefined') {
+      updateObject.category = category;
+    }
+    if (nationality !== undefined && nationality !== null && nationality !== '' && nationality !== 'null' && nationality !== 'undefined') {
+      updateObject.nationality = nationality;
+    }
+    if (religion !== undefined && religion !== null && religion !== '' && religion !== 'null' && religion !== 'undefined') {
+      updateObject.religion = religion;
+    }
+    // Education Information
+    if (highestDegree !== undefined && highestDegree !== null && highestDegree !== '' && highestDegree !== 'null' && highestDegree !== 'undefined') {
+      updateObject.highestDegree = highestDegree;
+    }
+    if (specialization !== undefined && specialization !== null && specialization !== '' && specialization !== 'null' && specialization !== 'undefined') {
+      updateObject.specialization = specialization;
+    }
+    if (collegeOrInstituteName !== undefined && collegeOrInstituteName !== null && collegeOrInstituteName !== '' && collegeOrInstituteName !== 'null' && collegeOrInstituteName !== 'undefined') {
+      updateObject.collegeOrInstituteName = collegeOrInstituteName;
+    }
+    if (schoolName !== undefined && schoolName !== null && schoolName !== '' && schoolName !== 'null' && schoolName !== 'undefined') {
+      updateObject.schoolName = schoolName;
+    }
+    if (experience !== undefined && experience !== null && experience !== '' && experience !== 'null' && experience !== 'undefined') {
+      updateObject.experience = experience;
+    }
+    if (skills !== undefined && skills !== null && skills !== '' && skills !== 'null' && skills !== 'undefined') {
+      updateObject.skills = skills;
+    }
+    if (previousCompany !== undefined && previousCompany !== null && previousCompany !== '' && previousCompany !== 'null' && previousCompany !== 'undefined') {
+      updateObject.previousCompany = previousCompany;
+    }
+    if (previousSalary !== undefined && previousSalary !== null && previousSalary !== '' && previousSalary !== 'null' && previousSalary !== 'undefined') {
+      updateObject.previousSalary = previousSalary;
+    }
+    // Application Information
+    if (modeOfTraining !== undefined && modeOfTraining !== null && modeOfTraining !== '' && modeOfTraining !== 'null' && modeOfTraining !== 'undefined') {
+      updateObject.modeOfTraining = modeOfTraining;
+    }
+    if (expectedJoiningDate !== undefined && expectedJoiningDate !== null && expectedJoiningDate !== '' && expectedJoiningDate !== 'null' && expectedJoiningDate !== 'undefined') {
+      updateObject.expectedJoiningDate = expectedJoiningDate;
+    }
+    if (expectedSalary !== undefined && expectedSalary !== null && expectedSalary !== '' && expectedSalary !== 'null' && expectedSalary !== 'undefined') {
+      updateObject.expectedSalary = expectedSalary;
+    }
+    if (currentSalary !== undefined && currentSalary !== null && currentSalary !== '' && currentSalary !== 'null' && currentSalary !== 'undefined') {
+      updateObject.currentSalary = currentSalary;
+    }
+    if (noticePeriod !== undefined && noticePeriod !== null && noticePeriod !== '' && noticePeriod !== 'null' && noticePeriod !== 'undefined') {
+      updateObject.noticePeriod = noticePeriod;
+    }
+    if (sourceField !== undefined && sourceField !== null && sourceField !== '' && sourceField !== 'null' && sourceField !== 'undefined') {
+      updateObject.source = sourceField;  // Map sourceField back to source for DB
+    }
+    if (sourceName !== undefined && sourceName !== null && sourceName !== '' && sourceName !== 'null' && sourceName !== 'undefined') {
+      updateObject.sourceName = sourceName;
+    }
+
+    // Add updatedBy information if user is authenticated
+    if (req.user) {
+      updateObject.updatedBy = {
+        userId: req.user._id,
+        email: req.user.email,
+        role: req.user.role,
+        name: req.user.name
+      };
+    }
+    
+    console.log('Final update object:', updateObject);
+    
     const updatedApplication = await InternAppliedData.findByIdAndUpdate(
       id,
-      {
-        // Only update fields if they are explicitly provided in the request
-        ...(fullName !== undefined && fullName !== null && { fullName: fullName }),
-        ...(email !== undefined && email !== null && { email: email }),
-        ...(phoneNo1 !== undefined && phoneNo1 !== null && { phoneNo1: phoneNo1 }),
-        ...(phoneNo2 !== undefined && phoneNo2 !== null && { phoneNo2: phoneNo2 }),
-        ...(postAppliedFor !== undefined && postAppliedFor !== null && { postAppliedFor: postAppliedFor }),
-        ...(productCompany !== undefined && productCompany !== null && { productCompany: productCompany }),
-        resumeUrl,
-        photoUrl,
-        // Update tracking fields if provided
-        ...(status !== undefined && status !== null && { status: status }),
-        ...(callStatus !== undefined && callStatus !== null && { callStatus: callStatus }),
-        ...(interviewRoundStatus !== undefined && interviewRoundStatus !== null && { interviewRoundStatus: interviewRoundStatus }),
-        ...(aptitudeRoundStatus !== undefined && aptitudeRoundStatus !== null && { aptitudeRoundStatus: aptitudeRoundStatus }),
-        ...(hrRoundStatus !== undefined && hrRoundStatus !== null && { hrRoundStatus: hrRoundStatus }),
-        ...(admissionLetter !== undefined && admissionLetter !== null && { admissionLetter: admissionLetter }),
-        ...(feesStatus !== undefined && feesStatus !== null && { feesStatus: feesStatus }),
-        ...(paymentMethod !== undefined && paymentMethod !== null && { paymentMethod: paymentMethod }),
-        ...(feesInstallmentStructure !== undefined && feesInstallmentStructure !== null && { feesInstallmentStructure: feesInstallmentStructure }),
-        ...(feedback !== undefined && feedback !== null && { feedback: feedback }),
-        ...(city !== undefined && city !== null && { city: city }),
-        ...(state !== undefined && state !== null && { state: state }),
-        ...(pincode !== undefined && pincode !== null && { pincode: pincode }),
-        ...(assignedTo !== undefined && assignedTo !== null && { assignedTo: assignedTo }),
-        ...(assignedBy !== undefined && assignedBy !== null && { assignedBy: assignedBy }),
-        ...(assignedByName !== undefined && assignedByName !== null && { assignedByName: assignedByName }),
-        // Personal Information
-        ...(fatherName !== undefined && fatherName !== null && { fatherName: fatherName }),
-        ...(fathersContactNo !== undefined && fathersContactNo !== null && { fathersContactNo: fathersContactNo }),
-        ...(address !== undefined && address !== null && { address: address }),
-        ...(gender !== undefined && gender !== null && { gender: gender }),
-        ...(dateOfBirth !== undefined && dateOfBirth !== null && { dateOfBirth: dateOfBirth }),
-        ...(age !== undefined && age !== null && { age: age }),
-        ...(maritalStatus !== undefined && maritalStatus !== null && { maritalStatus: maritalStatus }),
-        ...(category !== undefined && category !== null && { category: category }),
-        ...(nationality !== undefined && nationality !== null && { nationality: nationality }),
-        ...(religion !== undefined && religion !== null && { religion: religion }),
-        // Education Information
-        ...(highestDegree !== undefined && highestDegree !== null && { highestDegree: highestDegree }),
-        ...(specialization !== undefined && specialization !== null && { specialization: specialization }),
-        ...(collegeOrInstituteName !== undefined && collegeOrInstituteName !== null && { collegeOrInstituteName: collegeOrInstituteName }),
-        ...(schoolName !== undefined && schoolName !== null && { schoolName: schoolName }),
-        ...(experience !== undefined && experience !== null && { experience: experience }),
-        ...(skills !== undefined && skills !== null && { skills: skills }),
-        ...(previousCompany !== undefined && previousCompany !== null && { previousCompany: previousCompany }),
-        ...(previousSalary !== undefined && previousSalary !== null && { previousSalary: previousSalary }),
-        // Application Information
-        ...(modeOfTraining !== undefined && modeOfTraining !== null && { modeOfTraining: modeOfTraining }),
-        ...(expectedJoiningDate !== undefined && expectedJoiningDate !== null && { expectedJoiningDate: expectedJoiningDate }),
-        ...(expectedSalary !== undefined && expectedSalary !== null && { expectedSalary: expectedSalary }),
-        ...(currentSalary !== undefined && currentSalary !== null && { currentSalary: currentSalary }),
-        ...(noticePeriod !== undefined && noticePeriod !== null && { noticePeriod: noticePeriod }),
-        ...(sourceField !== undefined && sourceField !== null && { source: sourceField }),
-        ...(sourceName !== undefined && sourceName !== null && { sourceName: sourceName })
-      },
+      updateObject,
       { new: true, runValidators: true }
     );
 
@@ -395,10 +511,12 @@ export const updateInternApplication = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating intern application:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to update intern application',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
