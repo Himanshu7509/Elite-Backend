@@ -125,8 +125,8 @@ export const getForms = async (req, res) => {
     if (user.role === "admin" || user.role === "manager") {
       // Admin and manager can see all leads
       filter = {};
-    } else if (user.role === "counsellor" || user.role === "telecaller") {
-      // Counsellor and Telecaller can see all leads
+    } else if (user.role === "counsellor" || user.role === "telecaller" || user.role === "hr") {
+      // Counsellor, Telecaller, and HR can see all leads
       filter = {};
     } else if (user.role === "sales" || user.role === "marketing") {
       // Sales and Marketing can see:
@@ -236,7 +236,7 @@ export const updateFormDetails = async (req, res) => {
     }
 
     // For sales and marketing, they can only update forms assigned to them
-    // Counselors and telecallers can update any form
+    // Counselors, telecallers, and HR can update any form
     if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
@@ -306,7 +306,7 @@ export const markAsRead = async (req, res) => {
     }
 
     // For sales and marketing, they can only mark forms assigned to them as read
-    // Counselors and telecallers can mark any form as read
+    // Counselors, telecallers, and HR can mark any form as read
     if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
@@ -368,7 +368,7 @@ export const updateStatus = async (req, res) => {
     }
 
     // For sales and marketing, they can only update status of forms assigned to them
-    // Counselors and telecallers can update status of any form
+    // Counselors, telecallers, and HR can update status of any form
     if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
       if (!teamMember || form.assignedTo?.toString() !== teamMember._id.toString()) {
@@ -410,9 +410,9 @@ export const updateStatus = async (req, res) => {
 
 export const assignLead = async (req, res) => {
   try {
-    // Admin, manager, counselor, and telecaller can assign leads
-    if (req.user.role !== "admin" && req.user.role !== "manager" && req.user.role !== "counsellor" && req.user.role !== "telecaller") {
-      return res.status(403).json({ message: "Access denied. Only admin, manager, counselor, or telecaller can assign leads." });
+    // Admin, manager, counselor, telecaller, and HR can assign leads
+    if (req.user.role !== "admin" && req.user.role !== "manager" && req.user.role !== "counsellor" && req.user.role !== "telecaller" && req.user.role !== "hr") {
+      return res.status(403).json({ message: "Access denied. Only admin, manager, counselor, telecaller, or HR can assign leads." });
     }
 
     const { id } = req.params; // Lead ID
@@ -606,7 +606,7 @@ export const updateEducation = async (req, res) => {
       return res.status(404).json({ message: "Form not found" });
     }
     
-    // For sales, marketing, counselors and telecallers, they can update forms assigned to them
+    // For sales, marketing, counselors, telecallers, and HR, they can update forms assigned to them
     // Admins and managers can update any form
     if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
@@ -655,7 +655,7 @@ export const addRemark = async (req, res) => {
       return res.status(404).json({ message: "Form not found" });
     }
     
-    // For sales, marketing, counselors and telecallers, they can update forms assigned to them
+    // For sales, marketing, counselors, telecallers, and HR, they can update forms assigned to them
     // Admins and managers can update any form
     if (req.user.role === "sales" || req.user.role === "marketing") {
       const teamMember = await Team.findOne({ email: req.user.email });
@@ -703,8 +703,8 @@ export const getLeadStats = async (req, res) => {
     if (user.role === "admin" || user.role === "manager") {
       // Admin and manager can see all leads
       filter = {};
-    } else if (user.role === "counsellor" || user.role === "telecaller") {
-      // Counsellor and Telecaller can see all leads
+    } else if (user.role === "counsellor" || user.role === "telecaller" || user.role === "hr") {
+      // Counsellor, Telecaller, and HR can see all leads
       filter = {};
     } else if (user.role === "sales" || user.role === "marketing") {
       // Sales and Marketing can see:

@@ -220,10 +220,25 @@ export const getInternApplicationById = async (req, res) => {
 export const updateInternApplication = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Debug logging to see what's in the request
+    console.log('Update request received for ID:', id);
+    console.log('Request body keys:', Object.keys(req.body || {}));
+    console.log('Request files present:', !!req.files);
+    console.log('Request user (if authenticated):', req.user ? 'Present' : 'Not present');
+    
     const { fullName, email, phoneNo1, phoneNo2, postAppliedFor, productCompany, status, callStatus, interviewRoundStatus, aptitudeRoundStatus, hrRoundStatus, admissionLetter, feesStatus, paymentMethod, feesInstallmentStructure, feedback, city, state, pincode, assignedTo, assignedBy, assignedByName, // Personal Information
     fatherName, fathersContactNo, address, gender, dateOfBirth, age, maritalStatus, category, nationality, religion, // Education Information
     highestDegree, specialization, collegeOrInstituteName, schoolName, experience, skills, previousCompany, previousSalary, // Application Information
     modeOfTraining, expectedJoiningDate, expectedSalary, currentSalary, noticePeriod, source: sourceField, sourceName } = req.body;
+
+    console.log('Extracted fields from body:', {
+      fullName: fullName,
+      email: email,
+      hasFullName: fullName !== undefined,
+      hasEmail: email !== undefined,
+      // ... other fields as needed
+    });
 
     const application = await InternAppliedData.findById(id);
     if (!application) {
@@ -233,8 +248,8 @@ export const updateInternApplication = async (req, res) => {
       });
     }
 
-    // Validate required fields if they are provided
-    if (fullName !== undefined) {
+    // Validate fields only if they are provided and not empty
+    if (fullName !== undefined && fullName !== null && fullName !== '') {
       if (!fullName.trim()) {
         return res.status(400).json({
           success: false,
@@ -243,7 +258,7 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (email !== undefined) {
+    if (email !== undefined && email !== null && email !== '') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
@@ -253,7 +268,7 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (phoneNo1 !== undefined) {
+    if (phoneNo1 !== undefined && phoneNo1 !== null && phoneNo1 !== '') {
       const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
       if (!phoneRegex.test(phoneNo1)) {
         return res.status(400).json({
@@ -263,7 +278,7 @@ export const updateInternApplication = async (req, res) => {
       }
     }
 
-    if (phoneNo2 !== undefined && phoneNo2 !== '') {
+    if (phoneNo2 !== undefined && phoneNo2 !== null && phoneNo2 !== '') {
       const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
       if (!phoneRegex.test(phoneNo2)) {
         return res.status(400).json({
@@ -315,59 +330,60 @@ export const updateInternApplication = async (req, res) => {
     const updatedApplication = await InternAppliedData.findByIdAndUpdate(
       id,
       {
-        fullName: fullName !== undefined ? fullName : application.fullName,
-        email: email !== undefined ? email : application.email,
-        phoneNo1: phoneNo1 !== undefined ? phoneNo1 : application.phoneNo1,
-        phoneNo2: phoneNo2 !== undefined ? phoneNo2 : application.phoneNo2,
-        postAppliedFor: postAppliedFor !== undefined ? postAppliedFor : application.postAppliedFor,
-        productCompany: productCompany !== undefined ? productCompany : application.productCompany,
+        // Only update fields if they are explicitly provided in the request
+        ...(fullName !== undefined && fullName !== null && { fullName: fullName }),
+        ...(email !== undefined && email !== null && { email: email }),
+        ...(phoneNo1 !== undefined && phoneNo1 !== null && { phoneNo1: phoneNo1 }),
+        ...(phoneNo2 !== undefined && phoneNo2 !== null && { phoneNo2: phoneNo2 }),
+        ...(postAppliedFor !== undefined && postAppliedFor !== null && { postAppliedFor: postAppliedFor }),
+        ...(productCompany !== undefined && productCompany !== null && { productCompany: productCompany }),
         resumeUrl,
         photoUrl,
         // Update tracking fields if provided
-        status: status !== undefined ? status : application.status,
-        callStatus: callStatus !== undefined ? callStatus : application.callStatus,
-        interviewRoundStatus: interviewRoundStatus !== undefined ? interviewRoundStatus : application.interviewRoundStatus,
-        aptitudeRoundStatus: aptitudeRoundStatus !== undefined ? aptitudeRoundStatus : application.aptitudeRoundStatus,
-        hrRoundStatus: hrRoundStatus !== undefined ? hrRoundStatus : application.hrRoundStatus,
-        admissionLetter: admissionLetter !== undefined ? admissionLetter : application.admissionLetter,
-        feesStatus: feesStatus !== undefined ? feesStatus : application.feesStatus,
-        paymentMethod: paymentMethod !== undefined ? paymentMethod : application.paymentMethod,
-        feesInstallmentStructure: feesInstallmentStructure !== undefined ? feesInstallmentStructure : application.feesInstallmentStructure,
-        feedback: feedback !== undefined ? feedback : application.feedback,
-        city: city !== undefined ? city : application.city,
-        state: state !== undefined ? state : application.state,
-        pincode: pincode !== undefined ? pincode : application.pincode,
-        assignedTo: assignedTo !== undefined ? assignedTo : application.assignedTo,
-        assignedBy: assignedBy !== undefined ? assignedBy : application.assignedBy,
-        assignedByName: assignedByName !== undefined ? assignedByName : application.assignedByName,
+        ...(status !== undefined && status !== null && { status: status }),
+        ...(callStatus !== undefined && callStatus !== null && { callStatus: callStatus }),
+        ...(interviewRoundStatus !== undefined && interviewRoundStatus !== null && { interviewRoundStatus: interviewRoundStatus }),
+        ...(aptitudeRoundStatus !== undefined && aptitudeRoundStatus !== null && { aptitudeRoundStatus: aptitudeRoundStatus }),
+        ...(hrRoundStatus !== undefined && hrRoundStatus !== null && { hrRoundStatus: hrRoundStatus }),
+        ...(admissionLetter !== undefined && admissionLetter !== null && { admissionLetter: admissionLetter }),
+        ...(feesStatus !== undefined && feesStatus !== null && { feesStatus: feesStatus }),
+        ...(paymentMethod !== undefined && paymentMethod !== null && { paymentMethod: paymentMethod }),
+        ...(feesInstallmentStructure !== undefined && feesInstallmentStructure !== null && { feesInstallmentStructure: feesInstallmentStructure }),
+        ...(feedback !== undefined && feedback !== null && { feedback: feedback }),
+        ...(city !== undefined && city !== null && { city: city }),
+        ...(state !== undefined && state !== null && { state: state }),
+        ...(pincode !== undefined && pincode !== null && { pincode: pincode }),
+        ...(assignedTo !== undefined && assignedTo !== null && { assignedTo: assignedTo }),
+        ...(assignedBy !== undefined && assignedBy !== null && { assignedBy: assignedBy }),
+        ...(assignedByName !== undefined && assignedByName !== null && { assignedByName: assignedByName }),
         // Personal Information
-        fatherName: fatherName !== undefined ? fatherName : application.fatherName,
-        fathersContactNo: fathersContactNo !== undefined ? fathersContactNo : application.fathersContactNo,
-        address: address !== undefined ? address : application.address,
-        gender: gender !== undefined ? gender : application.gender,
-        dateOfBirth: dateOfBirth !== undefined ? dateOfBirth : application.dateOfBirth,
-        age: age !== undefined ? age : application.age,
-        maritalStatus: maritalStatus !== undefined ? maritalStatus : application.maritalStatus,
-        category: category !== undefined ? category : application.category,
-        nationality: nationality !== undefined ? nationality : application.nationality,
-        religion: religion !== undefined ? religion : application.religion,
+        ...(fatherName !== undefined && fatherName !== null && { fatherName: fatherName }),
+        ...(fathersContactNo !== undefined && fathersContactNo !== null && { fathersContactNo: fathersContactNo }),
+        ...(address !== undefined && address !== null && { address: address }),
+        ...(gender !== undefined && gender !== null && { gender: gender }),
+        ...(dateOfBirth !== undefined && dateOfBirth !== null && { dateOfBirth: dateOfBirth }),
+        ...(age !== undefined && age !== null && { age: age }),
+        ...(maritalStatus !== undefined && maritalStatus !== null && { maritalStatus: maritalStatus }),
+        ...(category !== undefined && category !== null && { category: category }),
+        ...(nationality !== undefined && nationality !== null && { nationality: nationality }),
+        ...(religion !== undefined && religion !== null && { religion: religion }),
         // Education Information
-        highestDegree: highestDegree !== undefined ? highestDegree : application.highestDegree,
-        specialization: specialization !== undefined ? specialization : application.specialization,
-        collegeOrInstituteName: collegeOrInstituteName !== undefined ? collegeOrInstituteName : application.collegeOrInstituteName,
-        schoolName: schoolName !== undefined ? schoolName : application.schoolName,
-        experience: experience !== undefined ? experience : application.experience,
-        skills: skills !== undefined ? skills : application.skills,
-        previousCompany: previousCompany !== undefined ? previousCompany : application.previousCompany,
-        previousSalary: previousSalary !== undefined ? previousSalary : application.previousSalary,
+        ...(highestDegree !== undefined && highestDegree !== null && { highestDegree: highestDegree }),
+        ...(specialization !== undefined && specialization !== null && { specialization: specialization }),
+        ...(collegeOrInstituteName !== undefined && collegeOrInstituteName !== null && { collegeOrInstituteName: collegeOrInstituteName }),
+        ...(schoolName !== undefined && schoolName !== null && { schoolName: schoolName }),
+        ...(experience !== undefined && experience !== null && { experience: experience }),
+        ...(skills !== undefined && skills !== null && { skills: skills }),
+        ...(previousCompany !== undefined && previousCompany !== null && { previousCompany: previousCompany }),
+        ...(previousSalary !== undefined && previousSalary !== null && { previousSalary: previousSalary }),
         // Application Information
-        modeOfTraining: modeOfTraining !== undefined ? modeOfTraining : application.modeOfTraining,
-        expectedJoiningDate: expectedJoiningDate !== undefined ? expectedJoiningDate : application.expectedJoiningDate,
-        expectedSalary: expectedSalary !== undefined ? expectedSalary : application.expectedSalary,
-        currentSalary: currentSalary !== undefined ? currentSalary : application.currentSalary,
-        noticePeriod: noticePeriod !== undefined ? noticePeriod : application.noticePeriod,
-        source: sourceField !== undefined ? sourceField : application.source,
-        sourceName: sourceName !== undefined ? sourceName : application.sourceName
+        ...(modeOfTraining !== undefined && modeOfTraining !== null && { modeOfTraining: modeOfTraining }),
+        ...(expectedJoiningDate !== undefined && expectedJoiningDate !== null && { expectedJoiningDate: expectedJoiningDate }),
+        ...(expectedSalary !== undefined && expectedSalary !== null && { expectedSalary: expectedSalary }),
+        ...(currentSalary !== undefined && currentSalary !== null && { currentSalary: currentSalary }),
+        ...(noticePeriod !== undefined && noticePeriod !== null && { noticePeriod: noticePeriod }),
+        ...(sourceField !== undefined && sourceField !== null && { source: sourceField }),
+        ...(sourceName !== undefined && sourceName !== null && { sourceName: sourceName })
       },
       { new: true, runValidators: true }
     );

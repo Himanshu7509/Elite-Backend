@@ -27,11 +27,11 @@ export const createReport = async (req, res) => {
     const { reportField, linkField, attendance } = req.body;
     
     // Check if user has permission to create reports
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can create reports."
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can create reports."
       });
     }
 
@@ -105,11 +105,11 @@ export const createReport = async (req, res) => {
 export const getUserReports = async (req, res) => {
   try {
     // Check if user has permission to view reports
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can view reports." 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can view reports." 
       });
     }
 
@@ -229,11 +229,11 @@ export const getReportById = async (req, res) => {
     const { id } = req.params;
 
     // Check if user has permission to view reports
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can view reports." 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can view reports." 
       });
     }
 
@@ -276,11 +276,11 @@ export const updateReport = async (req, res) => {
     const { reportField, linkField, attendance } = req.body;
 
     // Check if user has permission to update reports
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can update reports." 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can update reports." 
       });
     }
 
@@ -442,11 +442,11 @@ export const getReportsByDateRange = async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Check if user has permission to view reports
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can view reports." 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can view reports." 
       });
     }
 
@@ -491,11 +491,11 @@ export const getReportsByDateRange = async (req, res) => {
 export const getAttendanceStats = async (req, res) => {
   try {
     // Check if user has permission to view attendance stats
-    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller'];
+    const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, and telecaller roles can view attendance stats." 
+        message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can view attendance stats." 
       });
     }
 
