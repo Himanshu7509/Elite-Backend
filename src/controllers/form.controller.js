@@ -43,8 +43,8 @@ export const createForm = async (req, res) => {
           creatorInfo.userId = teamMember._id;
           creatorInfo.name = teamMember.name;
           
-          // If a sales or marketing person is creating a lead, automatically assign it to them
-          if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") {
+          // If a sales, marketing, counselor, telecaller, or HR person is creating a lead, automatically assign it to them
+          if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") {
             formData.assignedTo = teamMember._id;
             formData.assignedBy = teamMember._id;
             formData.assignedByName = teamMember.name;
@@ -69,8 +69,8 @@ export const createForm = async (req, res) => {
     const newForm = new Form(formData);
     const savedForm = await newForm.save();
     
-    // If this is a sales or marketing person's lead, update their assigned leads
-    if (req.user && (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller") && req.user._id) {
+    // If this is a sales, marketing, counselor, telecaller, or HR person's lead, update their assigned leads
+    if (req.user && (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") && req.user._id) {
       const teamMember = await Team.findById(req.user._id);
       if (teamMember) {
         await Team.findByIdAndUpdate(teamMember._id, {

@@ -58,6 +58,23 @@ export const createEnrollment = async (req, res) => {
       sourceType = 'admin'; // Set source to admin if authenticated
     }
 
+    // Handle automatic assignment for specific roles
+    let assignedToValue = assignedTo || null;
+    let assignedByValue = assignedBy || null;
+    let assignedByNameValue = assignedByName || null;
+    
+    if (req.user && req.user._id) {
+      const teamMember = await Team.findById(req.user._id);
+      if (teamMember) {
+        // If a sales, marketing, counselor, telecaller, or HR person is creating an enrollment, automatically assign it to them
+        if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") {
+          assignedToValue = teamMember._id;
+          assignedByValue = teamMember._id;
+          assignedByNameValue = teamMember.name;
+        }
+      }
+    }
+
     const newEnrollment = new Enrollment({
       // Basic fields
       studentName,
@@ -79,9 +96,9 @@ export const createEnrollment = async (req, res) => {
       feesInstallmentStructure: feesInstallmentStructure || 'one_time',
       
       // CRM fields
-      assignedTo: assignedTo || null,
-      assignedBy: assignedBy || null,
-      assignedByName: assignedByName || null,
+      assignedTo: assignedToValue,
+      assignedBy: assignedByValue,
+      assignedByName: assignedByNameValue,
       
       // Tracking fields
       createdBy: createdBy || createdByInfo,
@@ -110,12 +127,22 @@ export const createEnrollment = async (req, res) => {
       date: date || new Date()
     });
 
-    await newEnrollment.save();
+    const savedEnrollment = await newEnrollment.save();
+    
+    // If this is a sales, marketing, counselor, telecaller, or HR person's enrollment, update their assigned enrollments
+    if (req.user && (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") && req.user._id) {
+      const teamMember = await Team.findById(req.user._id);
+      if (teamMember) {
+        await Team.findByIdAndUpdate(teamMember._id, {
+          $addToSet: { assignedEnrollments: savedEnrollment._id },
+        });
+      }
+    }
     
     res.status(201).json({ 
       success: true, 
       message: "Enrollment created successfully",
-      data: newEnrollment 
+      data: savedEnrollment 
     });
   } catch (error) {
     console.error("Error creating enrollment:", error);

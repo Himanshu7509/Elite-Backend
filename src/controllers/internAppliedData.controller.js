@@ -1,5 +1,6 @@
 import InternAppliedData from '../models/internAppliedData.model.js';
 import { uploadFileToS3 } from '../utils/s3Upload.js';
+import Team from '../models/team.model.js';
 
 // Create new intern application
 export const createInternApplication = async (req, res) => {
@@ -81,6 +82,11 @@ export const createInternApplication = async (req, res) => {
     let createdByInfo = null;
     let source = 'website'; // Default source
     
+    // Handle automatic assignment for specific roles
+    let assignedToValue = null;
+    let assignedByValue = null;
+    let assignedByNameValue = null;
+    
     if (req.user) {
       createdByInfo = {
         userId: req.user._id,
@@ -89,6 +95,19 @@ export const createInternApplication = async (req, res) => {
         name: req.user.name
       };
       source = 'admin'; // Set source to admin if authenticated
+      
+      // If authenticated, check if user is from a role that should auto-assign
+      if (req.user._id) {
+        const foundTeamMember = await Team.findById(req.user._id);
+        if (foundTeamMember) {
+          // If a sales, marketing, counselor, telecaller, or HR person is creating an application, automatically assign it to them
+          if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") {
+            assignedToValue = foundTeamMember._id;
+            assignedByValue = foundTeamMember._id;
+            assignedByNameValue = foundTeamMember.name;
+          }
+        }
+      }
     }
 
     const newApplication = new InternAppliedData({
@@ -110,15 +129,29 @@ export const createInternApplication = async (req, res) => {
       feesStatus: 'not_paid',
       date: new Date(),
       source: source, // Set source based on authentication
-      createdBy: createdByInfo
+      createdBy: createdByInfo,
+      // Add assignment fields
+      assignedTo: assignedToValue,
+      assignedBy: assignedByValue,
+      assignedByName: assignedByNameValue
     });
 
-    await newApplication.save();
-
+    const savedApplication = await newApplication.save();
+    
+    // If this is a sales, marketing, counselor, telecaller, or HR person's application, update their assigned applications
+    if (req.user && (req.user.role === 'sales' || req.user.role === 'marketing' || req.user.role === 'counsellor' || req.user.role === 'telecaller' || req.user.role === 'hr') && req.user._id) {
+      const teamMember = await Team.findById(req.user._id);
+      if (teamMember) {
+        await Team.findByIdAndUpdate(teamMember._id, {
+          $addToSet: { assignedApplications: savedApplication._id },
+        });
+      }
+    }
+    
     res.status(201).json({
       success: true,
       message: 'Intern application created successfully',
-      data: newApplication
+      data: savedApplication
     });
   } catch (error) {
     console.error('Error creating intern application:', error);
