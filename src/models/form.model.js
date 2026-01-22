@@ -123,7 +123,7 @@ const formSchema = new mongoose.Schema(
     },
     source: { 
       type: String, 
-      enum: ["website", "admin", "manager", "sales", "marketing", "counsellor", "telecaller", "other"],
+      enum: ["website", "admin", "manager", "sales", "marketing", "counsellor", "telecaller", "hr", "other"],
       default: "other" 
     },
 
