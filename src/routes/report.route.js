@@ -7,6 +7,7 @@ import {
   deleteReport, 
   getReportsByDateRange,
   getAttendanceStats,
+  getAllTeamMembers,
   upload 
 } from "../controllers/report.controller.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
@@ -21,6 +22,9 @@ router.get("/", verifyToken, getUserReports);
 
 // Get reports by date range (requires authentication, allowed for admin, developer, analyst)
 router.get("/date-range", verifyToken, getReportsByDateRange);
+
+// Get all team members for name filter
+router.get("/team-members", verifyToken, getAllTeamMembers);
 
 // Get attendance statistics (requires authentication, allowed for admin, developer, analyst)
 router.get("/attendance-stats", verifyToken, getAttendanceStats);

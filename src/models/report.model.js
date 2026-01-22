@@ -14,6 +14,9 @@ const reportSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  userRole: { 
+    type: String 
+  },
   reportField: { 
     type: String, 
     required: true 
