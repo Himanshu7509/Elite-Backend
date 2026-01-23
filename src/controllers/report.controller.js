@@ -139,51 +139,59 @@ export const getUserReports = async (req, res) => {
     }
     
     // Handle date filtering
-    const dateConditions = [];
-    
-    if (req.query.day) {
-      // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
-      const dayMap = {
-        'sunday': 1,
-        'monday': 2,
-        'tuesday': 3,
-        'wednesday': 4,
-        'thursday': 5,
-        'friday': 6,
-        'saturday': 7
-      };
+    if (req.query.date) {
+      // Filter by specific date - convert to start and end of that day
+      const specificDate = new Date(req.query.date);
+      const startOfDay = new Date(specificDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(specificDate);
+      endOfDay.setHours(23, 59, 59, 999);
       
-      const dayValue = dayMap[req.query.day.toLowerCase()];
-      if (dayValue) {
-        dateConditions.push({
-          $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
-        });
+      query['attendance.date'] = {
+        $gte: startOfDay,
+        $lte: endOfDay
+      };
+    } else {
+      // Handle date range filtering
+      if (req.query.startDate || req.query.endDate) {
+        if (!query['attendance.date']) {
+          query['attendance.date'] = {};
+        }
+        
+        if (req.query.startDate) {
+          const startDate = new Date(req.query.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          query['attendance.date'].$gte = startDate;
+        }
+        
+        if (req.query.endDate) {
+          const endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          query['attendance.date'].$lte = endDate;
+        }
       }
-    }
-    
-    // Handle date range filtering
-    if (req.query.startDate && req.query.endDate) {
-      dateConditions.push({
-        $gte: new Date(req.query.startDate),
-        $lte: new Date(req.query.endDate)
-      });
-    } else if (req.query.startDate) {
-      dateConditions.push({ $gte: new Date(req.query.startDate) });
-    } else if (req.query.endDate) {
-      // Set end of day for endDate
-      const endDate = new Date(req.query.endDate);
-      endDate.setHours(23, 59, 59, 999);
-      dateConditions.push({ $lte: endDate });
-    }
-    
-    // Apply date conditions to query
-    if (dateConditions.length > 0) {
-      query['attendance.date'] = { $exists: true };
-      if (dateConditions.length === 1) {
-        Object.assign(query['attendance.date'], dateConditions[0]);
-      } else {
-        // Combine multiple conditions with $and
-        query['attendance.date'].$and = dateConditions;
+      
+      // Handle day filter
+      if (req.query.day) {
+        // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
+        const dayMap = {
+          'sunday': 1,
+          'monday': 2,
+          'tuesday': 3,
+          'wednesday': 4,
+          'thursday': 5,
+          'friday': 6,
+          'saturday': 7
+        };
+        
+        const dayValue = dayMap[req.query.day.toLowerCase()];
+        if (dayValue) {
+          // Add condition to match day of week
+          if (!query.$and) query.$and = [];
+          query.$and.push({
+            $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
+          });
+        }
       }
     }
 
@@ -451,9 +459,21 @@ export const getReportsByDateRange = async (req, res) => {
     //   });
     // }
 
-    // Parse dates
-    const start = startDate ? new Date(startDate) : new Date(0); // Beginning of time if not provided
-    const end = endDate ? new Date(endDate) : new Date(); // Current date if not provided
+    // Parse dates and set proper start/end of days
+    let start, end;
+    if (startDate) {
+      start = new Date(startDate);
+      start.setHours(0, 0, 0, 0); // Start of the day
+    } else {
+      start = new Date(0); // Beginning of time if not provided
+    }
+    
+    if (endDate) {
+      end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // End of the day
+    } else {
+      end = new Date(); // Current time if not provided
+    }
 
     let reports;
     
