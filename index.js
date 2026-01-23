@@ -28,22 +28,38 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',            
-    'http://localhost:3000',          
-    'http://127.0.0.1:5173',          
-    'http://127.0.0.1:3000',        
-    'https://elitebmi.in',            
-    'https://www.elitebmi.in',
-    'https://eliteassociate.in',
-    'https://www.eliteassociate.in/',
-    'https://www.elitebifs.in',
-    'https://www.elitebim.in',
-    'https://www.jifsacareers.com',
-    'https://www.eeetechnologies.in',
-    'https://www.eliteindiajobs.in'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:5174',            
+      'http://localhost:3000',          
+      'http://127.0.0.1:5173',          
+      'http://127.0.0.1:3000',        
+      'https://elitebmi.in',            
+      'https://www.elitebmi.in',
+      'https://eliteassociate.in',
+      'https://www.eliteassociate.in/',
+      'https://www.elitebifs.in',
+      'https://www.elitebim.in',
+      'https://www.jifsacareers.com',
+      'https://www.eeetechnologies.in',
+      'https://www.eliteindiajobs.in'
+    ];
+    
+    // Check if origin is in allowed list or is a local network address
+    const isLocalNetwork = origin && (
+      origin.startsWith('http://192.168.') ||
+      origin.startsWith('http://10.') ||
+      origin.startsWith('http://172.') ||
+      origin.startsWith('http://localhost') ||
+      origin.startsWith('http://127.0.0.1')
+    );
+    
+    callback(null, isLocalNetwork || allowedOrigins.indexOf(origin) !== -1);
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -78,6 +94,6 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on http://${process.env.HOST || 'localhost'}:${PORT}`));
 
 export default app;
