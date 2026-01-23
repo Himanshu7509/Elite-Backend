@@ -286,13 +286,17 @@ export const getUnassignedForms = async (req, res) => {
 // ✅ Get leads assigned to a specific sales or marketing member - for admin and manager
 export const getAssignedForms = async (req, res) => {
   try {
-    // Only admin and manager can see assigned leads
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
-      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
-    }
-
     const { salesId } = req.params;
     
+    // Allow admin and manager to see any user's assigned leads
+    // Allow other roles to see their own assigned leads
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      // For non-admin/manager, only allow accessing own assigned leads
+      if (req.user._id.toString() !== salesId) {
+        return res.status(403).json({ message: "Access denied. You can only access your own assigned leads." });
+      }
+    }
+
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
