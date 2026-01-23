@@ -116,7 +116,7 @@ export const createForm = async (req, res) => {
   }
 };
 
-// ✅ Get all leads based on user role
+// ✅ Get all leads based on user role with pagination
 export const getForms = async (req, res) => {
   try {
     const user = req.user; // populated from verifyToken middleware
@@ -150,15 +150,40 @@ export const getForms = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalCount = await Form.countDocuments(filter);
+
+    // Get paginated results
     const forms = await Form.find(filter)
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(forms);
+    res.status(200).json({
+      success: true,
+      data: forms,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: limit,
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     console.error("Error fetching forms:", error.message);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -167,18 +192,46 @@ export const getAllForms = async (req, res) => {
   try {
     // Only admin and manager can see all leads
     if (req.user.role !== "admin" && req.user.role !== "manager") {
-      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied. Admin or Manager rights required." 
+      });
     }
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalCount = await Form.countDocuments();
+
+    // Get paginated results
     const forms = await Form.find()
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(forms);
+    res.status(200).json({
+      success: true,
+      data: forms,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: limit,
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     console.error("Error fetching forms:", error.message);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -187,18 +240,46 @@ export const getUnassignedForms = async (req, res) => {
   try {
     // Only admin and manager can see unassigned leads
     if (req.user.role !== "admin" && req.user.role !== "manager") {
-      return res.status(403).json({ message: "Access denied. Admin or Manager rights required." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Access denied. Admin or Manager rights required." 
+      });
     }
 
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const totalCount = await Form.countDocuments({ assignedTo: null });
+
+    // Get paginated results
     const forms = await Form.find({ assignedTo: null })
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(forms);
+    res.status(200).json({
+      success: true,
+      data: forms,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: limit,
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     console.error("Error fetching forms:", error.message);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -211,15 +292,41 @@ export const getAssignedForms = async (req, res) => {
     }
 
     const { salesId } = req.params;
+    
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    
+    // Get total count
+    const totalCount = await Form.countDocuments({ assignedTo: salesId });
+    
+    // Get paginated results
     const forms = await Form.find({ assignedTo: salesId })
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(forms);
+    res.status(200).json({
+      success: true,
+      data: forms,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalItems: totalCount,
+        itemsPerPage: limit,
+        hasNextPage: page < Math.ceil(totalCount / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
     console.error("Error fetching forms:", error.message);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
