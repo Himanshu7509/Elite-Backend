@@ -45,9 +45,17 @@ export const createForm = async (req, res) => {
           
           // If a sales, marketing, counselor, telecaller, or HR person is creating a lead, automatically assign it to them
           if (req.user.role === "sales" || req.user.role === "marketing" || req.user.role === "counsellor" || req.user.role === "telecaller" || req.user.role === "hr") {
-            formData.assignedTo = teamMember._id;
-            formData.assignedBy = teamMember._id;
-            formData.assignedByName = teamMember.name;
+            if (teamMember) {
+              // If team member exists in DB, use their _id
+              formData.assignedTo = teamMember._id;
+              formData.assignedBy = teamMember._id;
+              formData.assignedByName = teamMember.name;
+            } else {
+              // For static users not in team collection, use email as identifier
+              formData.assignedTo = req.user.email;
+              formData.assignedBy = req.user.email;
+              formData.assignedByName = req.user.name || req.user.email;
+            }
           }
         }
       } else {
@@ -82,7 +90,21 @@ export const createForm = async (req, res) => {
     // Send notification if lead is assigned to someone
     if (savedForm.assignedTo) {
       try {
-        await notifyNewLead(savedForm.assignedTo, savedForm);
+        // Check if assignedTo is an ObjectId (database user) or email (static user)
+        const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(savedForm.assignedTo);
+        let assignedUserId = savedForm.assignedTo;
+        if (isValidObjectId) {
+          assignedUserId = savedForm.assignedTo;
+        } else {
+          // If assignedTo is an email, find the corresponding user ID
+          const assignedUser = await Team.findOne({ email: savedForm.assignedTo });
+          if (assignedUser) {
+            assignedUserId = assignedUser._id;
+          }
+        }
+        if (assignedUserId) {
+          await notifyNewLead(assignedUserId, savedForm);
+        }
       } catch (notificationError) {
         console.error('Error sending lead assignment notification:', notificationError);
         // Don't fail the main operation if notification fails
@@ -96,7 +118,14 @@ export const createForm = async (req, res) => {
       // Get assigned user details if the lead is assigned
       let assignedUser = null;
       if (savedForm.assignedTo) {
-        assignedUser = await Team.findById(savedForm.assignedTo);
+        // Check if assignedTo is an ObjectId (database user) or email (static user)
+        const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(savedForm.assignedTo);
+        if (isValidObjectId) {
+          assignedUser = await Team.findById(savedForm.assignedTo);
+        } else {
+          // If assignedTo is an email, find by email
+          assignedUser = await Team.findOne({ email: savedForm.assignedTo });
+        }
       }
       
       for (const admin of admins) {
@@ -302,11 +331,17 @@ export const getAssignedForms = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
-    // Get total count
-    const totalCount = await Form.countDocuments({ assignedTo: salesId });
+    // Get total count - handle both ObjectId and email
+    const filter = {
+      $or: [
+        { assignedTo: salesId },  // Match by ObjectId
+        { assignedTo: { $regex: new RegExp(`^${salesId}$`, 'i') } }  // Match by email (case-insensitive exact match)
+      ]
+    };
+    const totalCount = await Form.countDocuments(filter);
     
     // Get paginated results
-    const forms = await Form.find({ assignedTo: salesId })
+    const forms = await Form.find(filter)
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email")
       .sort({ createdAt: -1 })
