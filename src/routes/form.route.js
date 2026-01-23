@@ -5,6 +5,7 @@ import {
   getAllForms,
   getUnassignedForms,
   getAssignedForms,
+  getFormById,
   markAsRead,
   updateStatus,
   assignLead,
@@ -28,6 +29,7 @@ formRouter.get("/read-form", verifyToken, getForms);
 formRouter.get("/read-all-forms", verifyToken, getAllForms);
 formRouter.get("/unassigned", verifyToken, getUnassignedForms);
 formRouter.get("/assigned/:salesId", verifyToken, getAssignedForms);
+formRouter.get("/form/:id", verifyToken, getFormById);
 formRouter.patch("/update/:id", verifyToken, upload.single("resume"), updateFormDetails);
 formRouter.patch("/:id/read", verifyToken, markAsRead);
 formRouter.patch("/:id/status", verifyToken, updateStatus);

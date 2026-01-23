@@ -1014,5 +1014,89 @@ export const getLeadStats = async (req, res) => {
   }
 };
 
+// ✅ Get a specific lead by ID
+export const getFormById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Find the form by ID
+    const form = await Form.findById(id)
+      .populate("assignedTo", "name email")
+      .populate("assignedBy", "name email")
+      .populate("createdBy.userId", "name email")
+      .populate("updatedBy.userId", "name email");
+    
+    if (!form) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Form not found" 
+      });
+    }
+    
+    // Check if the user has permission to view this form
+    const user = req.user;
+    
+    // Admin and manager can view any form
+    if (user.role === "admin" || user.role === "manager") {
+      return res.status(200).json({
+        success: true,
+        data: form
+      });
+    }
+    
+    // Counselor, telecaller, and HR can view any form
+    if (user.role === "counsellor" || user.role === "telecaller" || user.role === "hr") {
+      return res.status(200).json({
+        success: true,
+        data: form
+      });
+    }
+    
+    // Sales and marketing can only view forms assigned to them or unassigned forms
+    if (user.role === "sales" || user.role === "marketing") {
+      const teamMember = await Team.findOne({ email: user.email });
+      
+      if (!teamMember) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Sales or Marketing team member not found" 
+        });
+      }
+      
+      // Allow access if the form is assigned to this user or is unassigned
+      if (form.assignedTo && form.assignedTo._id && 
+          form.assignedTo._id.toString() === teamMember._id.toString()) {
+        return res.status(200).json({
+          success: true,
+          data: form
+        });
+      } else if (!form.assignedTo) {
+        return res.status(200).json({
+          success: true,
+          data: form
+        });
+      } else {
+        return res.status(403).json({ 
+          success: false,
+          message: "Access denied. You can only view leads assigned to you." 
+        });
+      }
+    }
+    
+    // Other roles don't have access
+    return res.status(403).json({ 
+      success: false,
+      message: "Access denied" 
+    });
+    
+  } catch (error) {
+    console.error("Error fetching form by ID:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
+  }
+};
+
 // Export the upload middleware
 export { upload };
