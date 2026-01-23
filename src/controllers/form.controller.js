@@ -332,21 +332,38 @@ export const getAssignedForms = async (req, res) => {
     const skip = (page - 1) * limit;
     
     // Get total count - handle both ObjectId and email
-    const filter = {
-      $or: [
-        { assignedTo: salesId },  // Match by ObjectId
-        { assignedTo: { $regex: new RegExp(`^${salesId}$`, 'i') } }  // Match by email (case-insensitive exact match)
-      ]
-    };
-    const totalCount = await Form.countDocuments(filter);
+    // First try to match as ObjectId, then as email
+    let forms = [];
+    let totalCount = 0;
     
-    // Get paginated results
-    const forms = await Form.find(filter)
-      .populate("assignedTo", "name email")
-      .populate("assignedBy", "name email")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Check if salesId looks like an ObjectId
+    const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(salesId);
+    
+    if (isValidObjectId) {
+      // If it's a valid ObjectId, match both as ObjectId and as email
+      const filter = {
+        $or: [
+          { assignedTo: salesId },  // Match by ObjectId
+          { assignedTo: salesId }   // Match by email (string)
+        ]
+      };
+      totalCount = await Form.countDocuments(filter);
+      forms = await Form.find(filter)
+        .populate("assignedTo", "name email")
+        .populate("assignedBy", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    } else {
+      // If it's not a valid ObjectId, match only as email
+      totalCount = await Form.countDocuments({ assignedTo: salesId });
+      forms = await Form.find({ assignedTo: salesId })
+        .populate("assignedTo", "name email")
+        .populate("assignedBy", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     res.status(200).json({
       success: true,
