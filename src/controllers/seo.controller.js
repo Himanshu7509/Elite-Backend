@@ -57,6 +57,11 @@ export const getAllSeoEntries = async (req, res) => {
     if (productCompany) filter.productCompany = productCompany;
     if (submissionEntity) filter.submissionEntity = submissionEntity;
 
+    // Role-based access: admin can see all, others can only see their own
+    if (req.user && req.user.role && req.user.role !== 'admin') {
+      filter['createdBy.userId'] = req.user._id;
+    }
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const seoEntries = await Seo.find(filter)
@@ -93,14 +98,20 @@ export const getSeoEntryById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const seoEntry = await Seo.findById(id)
+    // Role-based access: admin can access any entry, others can only access their own
+    const query = { _id: id };
+    if (req.user && req.user.role && req.user.role !== 'admin') {
+      query['createdBy.userId'] = req.user._id;
+    }
+
+    const seoEntry = await Seo.findOne(query)
       .populate('createdBy.userId', 'name email role')
       .populate('updatedBy.userId', 'name email role');
 
     if (!seoEntry) {
       return res.status(404).json({
         success: false,
-        message: 'SEO entry not found'
+        message: 'SEO entry not found or access denied'
       });
     }
 
@@ -123,11 +134,17 @@ export const updateSeoEntry = async (req, res) => {
     const { id } = req.params;
     const { productCompany, submissionEntity, count, date, links } = req.body;
 
-    const seoEntry = await Seo.findById(id);
+    // Check if the user has permission to update this entry
+    const query = { _id: id };
+    if (req.user && req.user.role && req.user.role !== 'admin') {
+      query['createdBy.userId'] = req.user._id;
+    }
+
+    const seoEntry = await Seo.findOne(query);
     if (!seoEntry) {
       return res.status(404).json({
         success: false,
-        message: 'SEO entry not found'
+        message: 'SEO entry not found or access denied'
       });
     }
 
@@ -177,11 +194,18 @@ export const deleteSeoEntry = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const seoEntry = await Seo.findById(id);
+    // Check if the user has permission to delete this entry
+    // Admin can delete any entry, others can only delete their own
+    const query = { _id: id };
+    if (req.user && req.user.role && req.user.role !== 'admin') {
+      query['createdBy.userId'] = req.user._id;
+    }
+
+    const seoEntry = await Seo.findOne(query);
     if (!seoEntry) {
       return res.status(404).json({
         success: false,
-        message: 'SEO entry not found'
+        message: 'SEO entry not found or access denied'
       });
     }
 
