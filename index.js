@@ -18,6 +18,7 @@ import ReportRouter from './src/routes/report.route.js'; // Add report router
 import InternAppliedDataRouter from './src/routes/internAppliedData.route.js'; // Add intern applied data router
 import NotificationRouter from './src/routes/notification.route.js'; // Add notification router
 import SeoRouter from './src/routes/seo.route.js'; // Add SEO router
+import BlogRouter from './src/routes/blog.route.js'; // Add Blog router
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -88,6 +89,7 @@ app.use('/reports', ReportRouter); // Add report route
 app.use('/intern-applied-data', InternAppliedDataRouter); // Add intern applied data route
 app.use('/notifications', NotificationRouter); // Add notification route
 app.use('/seo', SeoRouter); // Add SEO route
+app.use('/blogs', BlogRouter); // Add Blog route
 
 dbConnect();
 
