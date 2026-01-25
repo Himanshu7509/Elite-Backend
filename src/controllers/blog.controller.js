@@ -77,13 +77,18 @@ export const createBlogPost = async (req, res) => {
       }
     }
 
+    console.log('Creating blog post with data:', blogData);
     const blogPost = new Blog(blogData);
     await blogPost.save();
+    
+    // Log the saved post to see what was actually saved
+    const savedPost = await Blog.findById(blogPost._id).populate('author.userId', 'name email role');
+    console.log('Saved blog post:', savedPost);
 
     res.status(201).json({
       success: true,
       message: 'Blog post created successfully',
-      data: blogPost
+      data: savedPost
     });
   } catch (error) {
     console.error('Error creating blog post:', error);
@@ -105,15 +110,22 @@ export const getAllBlogPosts = async (req, res) => {
     if (category) filter.category = category;
     if (status) filter.status = status;
     
+    console.log('User info:', req.user);
+    console.log('Query params:', { page, limit, productCompany, category, status, author });
+    
     // Role-based access: admin can see all, others can only see published posts or their own drafts
     if (req.user && req.user.role && req.user.role !== 'admin') {
       filter.$or = [
         { status: 'published' },
         { 'author.userId': req.user._id }
       ];
+      console.log('Non-admin filter applied:', filter);
     } else if (!req.user || !req.user.role) {
       // Non-authenticated users can only see published posts
       filter.status = 'published';
+      console.log('Guest filter applied:', filter);
+    } else {
+      console.log('Admin access - no filter applied');
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
