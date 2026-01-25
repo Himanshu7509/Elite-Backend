@@ -8,22 +8,22 @@ import {
   getProductCompanies,
   getSubmissionEntities
 } from '../controllers/seo.controller.js';
-import { protect, authorize } from '../middleware/auth.middleware.js';
+import { verifyToken } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Public routes (accessible by all roles)
 router.route('/')
-  .post(protect, createSeoEntry) // Only authenticated users can create
-  .get(protect, getAllSeoEntries); // Only authenticated users can view
+  .post(verifyToken, createSeoEntry) // Only authenticated users can create
+  .get(verifyToken, getAllSeoEntries); // Only authenticated users can view
 
 router.route('/:id')
-  .get(protect, getSeoEntryById) // Only authenticated users can view
-  .put(protect, updateSeoEntry) // Only authenticated users can update
-  .delete(protect, authorize('admin'), deleteSeoEntry); // Only admin can delete
+  .get(verifyToken, getSeoEntryById) // Only authenticated users can view
+  .put(verifyToken, updateSeoEntry) // Only authenticated users can update
+  .delete(verifyToken, deleteSeoEntry); // Only authenticated users can delete (admin restriction handled in controller)
 
 // Additional utility routes
-router.get('/product-companies', protect, getProductCompanies);
-router.get('/submission-entities', protect, getSubmissionEntities);
+router.get('/product-companies', verifyToken, getProductCompanies);
+router.get('/submission-entities', verifyToken, getSubmissionEntities);
 
 export default router;

@@ -194,18 +194,19 @@ export const deleteSeoEntry = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if the user has permission to delete this entry
-    // Admin can delete any entry, others can only delete their own
-    const query = { _id: id };
-    if (req.user && req.user.role && req.user.role !== 'admin') {
-      query['createdBy.userId'] = req.user._id;
+    // Admin-only delete functionality
+    if (req.user && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin role required to delete SEO entries.'
+      });
     }
 
-    const seoEntry = await Seo.findOne(query);
+    const seoEntry = await Seo.findById(id);
     if (!seoEntry) {
       return res.status(404).json({
         success: false,
-        message: 'SEO entry not found or access denied'
+        message: 'SEO entry not found'
       });
     }
 
