@@ -199,7 +199,12 @@ export const getForms = async (req, res) => {
     }
 
     if (productCompany && productCompany !== 'all') {
-      filter.productCompany = productCompany.replace(/-/g, ' ');
+      // Handle product company filter - try both dash and space formats
+      filter.$or = [
+        { productCompany: productCompany },
+        { productCompany: productCompany.replace(/-/g, ' ') },
+        { productCompany: productCompany.replace(/\s+/g, '-') }
+      ];
     }
 
     if (callStatus && callStatus !== 'all') {
@@ -263,7 +268,32 @@ export const getForms = async (req, res) => {
 
     // If we have OR filters, add them to the filter
     if (orFilters.length > 0) {
-      filter.$or = orFilters;
+      if (filter.$or) {
+        // If there's already an $or in the filter, combine them
+        filter.$or = [...filter.$or, ...orFilters];
+      } else {
+        filter.$or = orFilters;
+      }
+    }
+
+    // Handle product company separately (as an AND condition with other filters)
+    if (productCompany && productCompany !== 'all') {
+      // Product company filter - handle multiple possible formats for backward compatibility
+      const productCompanyVariants = [
+        productCompany,
+        productCompany.replace(/-/g, ' '),
+        productCompany.replace(/\s+/g, '-'),
+        // Handle old lowercase formats
+        productCompany.toLowerCase(),
+        productCompany.toLowerCase().replace(/-/g, ' '),
+        productCompany.toLowerCase().replace(/\s+/g, '-'),
+        // Handle old formats without 'Elite-' prefix
+        productCompany.replace('Elite-', '').toLowerCase(),
+        productCompany.replace('EEE-', '').toLowerCase()
+      ];
+      
+      // Filter to match any of the possible formats
+      filter.productCompany = { $in: productCompanyVariants };
     }
 
     // Pagination parameters
