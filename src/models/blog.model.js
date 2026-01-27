@@ -21,6 +21,10 @@ const blogSchema = new mongoose.Schema({
   tags: [{
     type: String
   }],
+  links: [{
+    type: String,
+    required: false
+  }],
   featuredImage: {
     type: String,
     default: null

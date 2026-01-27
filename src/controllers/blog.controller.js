@@ -44,7 +44,7 @@ const deleteFromS3 = async (imageUrl) => {
 // Create a new blog post
 export const createBlogPost = async (req, res) => {
   try {
-    const { title, content, productCompany, category, tags, status } = req.body;
+    const { title, content, productCompany, category, tags, links, status } = req.body;
     
     // Prepare the base data
     const blogData = {
@@ -53,6 +53,7 @@ export const createBlogPost = async (req, res) => {
       productCompany,
       category,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())) : [],
+      links: links ? (Array.isArray(links) ? links : links.split(',').map(link => link.trim())) : [],
       status: status || 'draft'
     };
 
@@ -121,9 +122,10 @@ export const getAllBlogPosts = async (req, res) => {
       ];
       console.log('Non-admin filter applied:', filter);
     } else if (!req.user || !req.user.role) {
-      // Non-authenticated users can only see published posts
-      filter.status = 'published';
-      console.log('Guest filter applied:', filter);
+      // For testing purposes and public API access, allow viewing all posts
+      // In production, you might want to uncomment the line below to only show published posts
+      // filter.status = 'published';
+      console.log('Guest access - showing all posts (for testing)');
     } else {
       console.log('Admin access - no filter applied');
     }
@@ -203,7 +205,7 @@ export const getBlogPostById = async (req, res) => {
 export const updateBlogPost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, content, productCompany, category, tags, status } = req.body;
+    const { title, content, productCompany, category, tags, links, status } = req.body;
 
     // Check if the user has permission to update this post
     const query = { _id: id };
@@ -226,6 +228,7 @@ export const updateBlogPost = async (req, res) => {
       productCompany,
       category,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim())) : [],
+      links: links ? (Array.isArray(links) ? links : links.split(',').map(link => link.trim())) : [],
       status
     };
 
