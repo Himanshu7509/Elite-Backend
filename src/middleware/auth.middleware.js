@@ -58,3 +58,24 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+// Optional authentication middleware - verifies token if provided, but doesn't require it
+export const optionalAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // No token provided, continue without authentication
+    return next();
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { email, role, _id }
+    next();
+  } catch (error) {
+    // Invalid token, continue without authentication
+    next();
+  }
+};

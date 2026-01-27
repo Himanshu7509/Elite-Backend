@@ -111,23 +111,19 @@ export const getAllBlogPosts = async (req, res) => {
     if (category) filter.category = category;
     if (status) filter.status = status;
     
-    console.log('User info:', req.user);
-    console.log('Query params:', { page, limit, productCompany, category, status, author });
-    
-    // Role-based access: admin can see all, others can only see published posts or their own drafts
-    if (req.user && req.user.role && req.user.role !== 'admin') {
-      filter.$or = [
-        { status: 'published' },
-        { 'author.userId': req.user._id }
-      ];
-      console.log('Non-admin filter applied:', filter);
-    } else if (!req.user || !req.user.role) {
-      // For testing purposes and public API access, allow viewing all posts
-      // In production, you might want to uncomment the line below to only show published posts
-      // filter.status = 'published';
-      console.log('Guest access - showing all posts (for testing)');
+    // Role-based access control
+    if (req.user && req.user.role) {
+      // Admin and Marketing can see all posts
+      if (req.user.role === 'admin' || req.user.role === 'marketing') {
+        // No filter needed - show all posts
+      } 
+      // Other roles can only see their own posts
+      else {
+        filter['author.userId'] = req.user._id;
+      }
     } else {
-      console.log('Admin access - no filter applied');
+      // Unauthenticated users can only see published posts
+      filter.status = 'published';
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
