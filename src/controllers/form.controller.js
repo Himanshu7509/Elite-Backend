@@ -179,6 +179,93 @@ export const getForms = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
+    // Handle additional filter parameters
+    const { 
+      searchTerm, 
+      status, 
+      productCompany, 
+      callStatus, 
+      interviewRoundStatus, 
+      aptitudeRoundStatus, 
+      hrRoundStatus, 
+      createdBy, 
+      remarkStatus, 
+      date 
+    } = req.query;
+
+    // Add filters to the base filter
+    if (status && status !== 'all') {
+      filter.status = status;
+    }
+
+    if (productCompany && productCompany !== 'all') {
+      filter.productCompany = productCompany.replace(/-/g, ' ');
+    }
+
+    if (callStatus && callStatus !== 'all') {
+      filter.callStatus = callStatus;
+    }
+
+    if (interviewRoundStatus && interviewRoundStatus !== 'all') {
+      filter.interviewRoundStatus = interviewRoundStatus;
+    }
+
+    if (aptitudeRoundStatus && aptitudeRoundStatus !== 'all') {
+      filter.aptitudeRoundStatus = aptitudeRoundStatus;
+    }
+
+    if (hrRoundStatus && hrRoundStatus !== 'all') {
+      filter.hrRoundStatus = hrRoundStatus;
+    }
+
+    // Handle search term and other OR filters
+    const orFilters = [];
+
+    if (searchTerm) {
+      const searchRegex = new RegExp(searchTerm, 'i');
+      orFilters.push(
+        { fullName: searchRegex },
+        { email: searchRegex },
+        { phoneNo: searchRegex },
+        { productCompany: searchRegex }
+      );
+    }
+
+    if (createdBy && createdBy !== 'all') {
+      // Handle createdBy filter - match by email or name
+      orFilters.push(
+        { 'createdBy.email': createdBy },
+        { 'createdBy.name': createdBy }
+      );
+    }
+
+    if (remarkStatus && remarkStatus !== 'all') {
+      if (remarkStatus === 'no_remarks') {
+        orFilters.push(
+          { remarks: { $exists: false } },
+          { remarks: { $size: 0 } }
+        );
+      } else {
+        filter['remarks.status'] = remarkStatus;
+      }
+    }
+
+    if (date) {
+      const filterDate = new Date(date);
+      const nextDay = new Date(filterDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      
+      filter.createdAt = {
+        $gte: filterDate,
+        $lt: nextDay
+      };
+    }
+
+    // If we have OR filters, add them to the filter
+    if (orFilters.length > 0) {
+      filter.$or = orFilters;
+    }
+
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
