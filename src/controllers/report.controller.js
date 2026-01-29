@@ -114,6 +114,11 @@ export const getUserReports = async (req, res) => {
     //   });
     // }
 
+    // Log incoming query parameters for debugging
+    console.log('Incoming query parameters:', req.query);
+    console.log('User role:', req.user.role);
+    console.log('Decoded userName parameter:', decodeURIComponent(req.query.userName || ''));
+
     // Pagination parameters
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -131,11 +136,18 @@ export const getUserReports = async (req, res) => {
     }
     
     if (req.query.userName) {
+      // Decode URL-encoded parameter and trim whitespace
+      const searchName = decodeURIComponent(req.query.userName).trim();
+      console.log('Searching for name:', searchName);
+      
       // Support both full email and username (before @) for name filter
+      // Also handle partial matches and case-insensitive search
       query.$or = [
-        { 'userId.name': { $regex: req.query.userName, $options: 'i' } },
-        { 'userName': { $regex: req.query.userName, $options: 'i' } }
+        { 'userId.name': { $regex: searchName, $options: 'i' } },
+        { 'userName': { $regex: searchName, $options: 'i' } }
       ];
+      
+      console.log('Name filter query:', query.$or);
     }
     
     // Add role filter if provided
@@ -143,7 +155,7 @@ export const getUserReports = async (req, res) => {
       query.userRole = req.query.userRole;
     }
     
-    // Handle date filtering
+    // Handle date filtering (attendance date)
     if (req.query.date) {
       // Filter by specific date - convert to start and end of that day
       const specificDate = new Date(req.query.date);
@@ -156,52 +168,54 @@ export const getUserReports = async (req, res) => {
         $gte: startOfDay,
         $lte: endOfDay
       };
-    } else {
-      // Handle date range filtering
-      if (req.query.startDate || req.query.endDate) {
-        if (!query['attendance.date']) {
-          query['attendance.date'] = {};
-        }
-        
-        if (req.query.startDate) {
-          const startDate = new Date(req.query.startDate);
-          startDate.setHours(0, 0, 0, 0);
-          query['attendance.date'].$gte = startDate;
-        }
-        
-        if (req.query.endDate) {
-          const endDate = new Date(req.query.endDate);
-          endDate.setHours(23, 59, 59, 999);
-          query['attendance.date'].$lte = endDate;
-        }
+    } else if (req.query.startDate || req.query.endDate) {
+      // Handle date range filtering for attendance date
+      if (!query['attendance.date']) {
+        query['attendance.date'] = {};
       }
       
-      // Handle day filter
-      if (req.query.day) {
-        // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
-        const dayMap = {
-          'sunday': 1,
-          'monday': 2,
-          'tuesday': 3,
-          'wednesday': 4,
-          'thursday': 5,
-          'friday': 6,
-          'saturday': 7
-        };
-        
-        const dayValue = dayMap[req.query.day.toLowerCase()];
-        if (dayValue) {
-          // Add condition to match day of week
-          if (!query.$and) query.$and = [];
-          query.$and.push({
-            $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
-          });
-        }
+      if (req.query.startDate) {
+        const startDate = new Date(req.query.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        query['attendance.date'].$gte = startDate;
+      }
+      
+      if (req.query.endDate) {
+        const endDate = new Date(req.query.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        query['attendance.date'].$lte = endDate;
+      }
+    }
+    
+    // Handle day filter (for attendance date) - this should work when some date constraint exists
+    if (req.query.day) {
+      // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
+      const dayMap = {
+        'sunday': 1,
+        'monday': 2,
+        'tuesday': 3,
+        'wednesday': 4,
+        'thursday': 5,
+        'friday': 6,
+        'saturday': 7
+      };
+      
+      const dayValue = dayMap[req.query.day.toLowerCase()];
+      if (dayValue) {
+        // Add condition to match day of week for attendance date
+        if (!query.$and) query.$and = [];
+        query.$and.push({
+          $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
+        });
       }
     }
 
+    // Log the final query for debugging
+    console.log('Final query:', JSON.stringify(query, null, 2));
+
     // Get total count
     const totalCount = await Report.countDocuments(query);
+    console.log('Total matching documents:', totalCount);
     
     // Get paginated results
     let reports;
@@ -217,6 +231,13 @@ export const getUserReports = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
+    }
+
+    // Log results for debugging
+    console.log('Number of reports returned:', reports.length);
+    if (reports.length > 0) {
+      console.log('Sample report userName:', reports[0].userName);
+      console.log('Sample report userId.name:', reports[0].userId?.name);
     }
 
     res.status(200).json({ 
