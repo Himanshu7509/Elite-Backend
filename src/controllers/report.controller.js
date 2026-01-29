@@ -138,14 +138,33 @@ export const getUserReports = async (req, res) => {
     if (req.query.userName) {
       // Decode URL-encoded parameter and trim whitespace
       const searchName = decodeURIComponent(req.query.userName).trim();
-      console.log('Searching for name:', searchName);
+      console.log('Original search parameter:', req.query.userName);
+      console.log('Decoded search name:', searchName);
       
-      // Support both full email and username (before @) for name filter
-      // Also handle partial matches and case-insensitive search
-      query.$or = [
-        { 'userId.name': { $regex: searchName, $options: 'i' } },
-        { 'userName': { $regex: searchName, $options: 'i' } }
-      ];
+      // Split the search name by spaces to handle multi-word searches (e.g., "Nandini Bhawre")
+      const nameParts = searchName.split(/\s+/).filter(part => part.length > 0);
+      
+      if (nameParts.length === 1) {
+        // Single word search - match any of the fields
+        query.$or = [
+          { 'userId.name': { $regex: searchName, $options: 'i' } },
+          { 'userName': { $regex: searchName, $options: 'i' } },
+          { 'userEmail': { $regex: searchName, $options: 'i' } }
+        ];
+      } else {
+        // Multi-word search - create OR conditions for each name part across all fields
+        // This allows matching "Nandini" OR "Bhawre" in any of the name/email fields
+        const orConditions = [];
+        nameParts.forEach(part => {
+          orConditions.push(
+            { 'userId.name': { $regex: part, $options: 'i' } },
+            { 'userName': { $regex: part, $options: 'i' } },
+            { 'userEmail': { $regex: part, $options: 'i' } }
+          );
+        });
+        
+        query.$or = orConditions;
+      }
       
       console.log('Name filter query:', query.$or);
     }
