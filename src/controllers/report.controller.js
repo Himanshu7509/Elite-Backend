@@ -138,6 +138,11 @@ export const getUserReports = async (req, res) => {
       ];
     }
     
+    // Add role filter if provided
+    if (req.query.userRole) {
+      query.userRole = req.query.userRole;
+    }
+    
     // Handle date filtering
     if (req.query.date) {
       // Filter by specific date - convert to start and end of that day
