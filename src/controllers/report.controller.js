@@ -174,7 +174,7 @@ export const getUserReports = async (req, res) => {
       query.userRole = req.query.userRole;
     }
     
-    // Handle date filtering (attendance date)
+    // Handle date filtering (both attendance date and created date)
     if (req.query.date) {
       // Filter by specific date - convert to start and end of that day
       console.log('Processing date filter:', req.query.date);
@@ -188,32 +188,36 @@ export const getUserReports = async (req, res) => {
       
       console.log('Start of day:', startOfDay, 'End of day:', endOfDay);
       
-      query['attendance.date'] = {
-        $gte: startOfDay,
-        $lte: endOfDay
-      };
+      // Query should match either attendance date OR created date
+      query.$or = [
+        { 'attendance.date': { $gte: startOfDay, $lte: endOfDay } },
+        { createdAt: { $gte: startOfDay, $lte: endOfDay } }
+      ];
       
-      console.log('Date query added:', query['attendance.date']);
+      console.log('Date query added with $or:', query.$or);
     } else if (req.query.startDate || req.query.endDate) {
-      // Handle date range filtering for attendance date
-      if (!query['attendance.date']) {
-        query['attendance.date'] = {};
-      }
+      // Handle date range filtering for both attendance date and created date
+      const dateRangeCondition = {};
       
       if (req.query.startDate) {
         const startDate = new Date(req.query.startDate);
         startDate.setHours(0, 0, 0, 0);
-        query['attendance.date'].$gte = startDate;
+        dateRangeCondition.$gte = startDate;
       }
       
       if (req.query.endDate) {
         const endDate = new Date(req.query.endDate);
         endDate.setHours(23, 59, 59, 999);
-        query['attendance.date'].$lte = endDate;
+        dateRangeCondition.$lte = endDate;
       }
+      
+      query.$or = [
+        { 'attendance.date': dateRangeCondition },
+        { createdAt: dateRangeCondition }
+      ];
     }
     
-    // Handle day filter (for attendance date) - this should work when some date constraint exists
+    // Handle day filter (for both attendance date and created date) - this should work when some date constraint exists
     if (req.query.day) {
       // Map day names to MongoDB $dayOfWeek values (Sunday = 1, Monday = 2, etc.)
       const dayMap = {
@@ -228,11 +232,27 @@ export const getUserReports = async (req, res) => {
       
       const dayValue = dayMap[req.query.day.toLowerCase()];
       if (dayValue) {
-        // Add condition to match day of week for attendance date
-        if (!query.$and) query.$and = [];
-        query.$and.push({
-          $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] }
-        });
+        // Add condition to match day of week for both attendance date and created date
+        const dayCondition = {
+          $or: [
+            { $expr: { $eq: [{ $dayOfWeek: "$attendance.date" }, dayValue] } },
+            { $expr: { $eq: [{ $dayOfWeek: "$createdAt" }, dayValue] } }
+          ]
+        };
+        
+        // If there's already a $or condition (from date filter), we need to use $and to combine
+        if (query.$or) {
+          // Wrap existing $or condition and day condition in an $and
+          const existingOr = query.$or;
+          delete query.$or;
+          query.$and = [
+            { $or: existingOr },
+            dayCondition
+          ];
+        } else {
+          if (!query.$and) query.$and = [];
+          query.$and.push(dayCondition);
+        }
       }
     }
 
