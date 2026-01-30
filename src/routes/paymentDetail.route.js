@@ -1,5 +1,5 @@
 import express from 'express'
-import { createPaymentDetail, getAllPaymentDetails, upload, deletePaymentDetail, updatePaymentDetail } from '../controllers/paymentDetail.controller.js'
+import { createPaymentDetail, getAllPaymentDetails, upload, deletePaymentDetail, updatePaymentDetail, getPaymentCategories } from '../controllers/paymentDetail.controller.js'
 import { verifyToken } from '../middleware/auth.middleware.js';
 import { optionalAuth } from '../middleware/optionalAuth.middleware.js';
 import { isAuthenticated } from '../middleware/role.middleware.js';
@@ -11,6 +11,9 @@ PaymentDetailRouter.post("/create", optionalAuth, upload.single("uploadImg"), cr
 
 // GET: Get payment details based on user role (authenticated users)
 PaymentDetailRouter.get("/get-all", verifyToken, isAuthenticated, getAllPaymentDetails);
+
+// GET: Get unique categories for the user
+PaymentDetailRouter.get("/categories", verifyToken, isAuthenticated, getPaymentCategories);
 
 // PUT: Update a payment detail (authenticated users)
 PaymentDetailRouter.put("/update/:id", verifyToken, isAuthenticated, upload.single("uploadImg"), updatePaymentDetail);

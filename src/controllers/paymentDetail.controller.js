@@ -89,6 +89,46 @@ export const createPaymentDetail = async (req, res) => {
   }
 };
 
+// GET: Fetch unique categories for the user
+export const getPaymentCategories = async (req, res) => {
+  try {
+    const user = req.user;
+    let filter = {};
+
+    if (user.role === "admin") {
+      filter = {};
+    } else if (user.role === "manager" || user.role === "sales") {
+      if (user._id) {
+        filter = { createdBy: user._id };
+      } else {
+        filter = { creatorEmail: user.email };
+      }
+    } else {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Invalid user role." 
+      });
+    }
+
+    // Get unique categories (excluding null/empty)
+    const categories = await PaymentDetail.distinct('category', {
+      ...filter,
+      category: { $ne: null, $ne: '' }
+    });
+    
+    res.status(200).json({ 
+      success: true, 
+      data: categories.sort() // Sort alphabetically
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch categories",
+      error: error.message,
+    });
+  }
+};
+
 // GET: Fetch payment details based on user role with filtering and pagination
 export const getAllPaymentDetails = async (req, res) => {
   try {
