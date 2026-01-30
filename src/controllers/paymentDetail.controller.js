@@ -130,6 +130,112 @@ export const getAllPaymentDetails = async (req, res) => {
   }
 };
 
+// PUT: Update a payment detail
+export const updatePaymentDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate } = req.body;
+    
+    // Check if payment detail exists
+    const payment = await PaymentDetail.findById(id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: "Payment detail not found" });
+    }
+
+    // Check permissions based on user role
+    const user = req.user;
+    let hasPermission = false;
+
+    if (user.role === "admin") {
+      // Admin can update any payment detail
+      hasPermission = true;
+    } else if (user.role === "manager" || user.role === "sales") {
+      // Manager and sales can only update their own payment details
+      if (user._id && payment.createdBy) {
+        // Database user - check createdBy field
+        if (payment.createdBy.toString() === user._id.toString()) {
+          hasPermission = true;
+        }
+      } else {
+        // Static user - check creatorEmail field
+        if (payment.creatorEmail === user.email) {
+          hasPermission = true;
+        }
+      }
+    }
+
+    if (!hasPermission) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. You can only update payment details you created." 
+      });
+    }
+
+    // Prepare update data
+    const updateData = {};
+    
+    // Add fields to update if provided
+    if (name !== undefined) updateData.name = name;
+    if (details !== undefined) updateData.details = details;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (amount !== undefined) updateData.amount = amount ? parseFloat(amount) : null;
+    if (currency !== undefined) updateData.currency = currency;
+    if (billingType !== undefined) updateData.billingType = billingType;
+    if (status !== undefined) updateData.status = status;
+    if (reminderDate !== undefined) updateData.reminderDate = reminderDate ? new Date(reminderDate) : null;
+    
+    // Validate date range if both dates are provided
+    if (updateData.startDate && updateData.endDate) {
+      const start = new Date(updateData.startDate);
+      const end = new Date(updateData.endDate);
+      if (start >= end) {
+        return res.status(400).json({ success: false, message: "End date must be after start date" });
+      }
+    }
+
+    // Handle file upload if present
+    if (req.file) {
+      // Delete old image from S3
+      if (payment.uploadImg) {
+        try {
+          const oldKey = payment.uploadImg.split(".amazonaws.com/")[1];
+          await s3.deleteObject({
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: oldKey,
+          }).promise();
+        } catch (deleteError) {
+          console.error("Error deleting old image from S3:", deleteError);
+        }
+      }
+      
+      // Upload new image
+      const imgUrl = await uploadToS3(req.file);
+      updateData.uploadImg = imgUrl;
+    }
+
+    // Update the payment detail
+    const updatedPayment = await PaymentDetail.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Payment detail updated successfully",
+      data: updatedPayment,
+    });
+  } catch (error) {
+    console.error("Error updating payment detail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update payment detail",
+      error: error.message,
+    });
+  }
+};
+
 // DELETE: Remove a payment detail + its image from S3
 export const deletePaymentDetail = async (req, res) => {
   try {

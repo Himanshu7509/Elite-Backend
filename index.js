@@ -6,7 +6,7 @@ import AuthRouter from "./src/routes/auth.route.js";
 import formRouter from "./src/routes/form.route.js";
 import admissionRouter from "./src/routes/admissionform.route.js";
 import complainFormRouter from "./src/routes/complainform.route.js";
-import PayamentDetailRouter from "./src/routes/paymentDetail.route.js";
+import PaymentDetailRouter from "./src/routes/paymentDetail.route.js";
 import TeamRouter from "./src/routes/team.route.js";
 import mailRouter from "./src/routes/lead-mail.route.js";
 import B2BRouter from "./src/routes/b2b.route.js";
@@ -77,7 +77,7 @@ app.use("/auth", AuthRouter);
 app.use('/form',formRouter);
 app.use('/admission-form',admissionRouter);
 app.use('/complaint',complainFormRouter);
-app.use('/payment-detail', PayamentDetailRouter);
+app.use('/payment-detail', PaymentDetailRouter);
 app.use('/team', TeamRouter)
 app.use('/mail', mailRouter)
 app.use('/b2b', B2BRouter)
