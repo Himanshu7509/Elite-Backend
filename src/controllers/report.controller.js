@@ -177,16 +177,23 @@ export const getUserReports = async (req, res) => {
     // Handle date filtering (attendance date)
     if (req.query.date) {
       // Filter by specific date - convert to start and end of that day
+      console.log('Processing date filter:', req.query.date);
       const specificDate = new Date(req.query.date);
-      const startOfDay = new Date(specificDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(specificDate);
-      endOfDay.setHours(23, 59, 59, 999);
+      console.log('Specific date object:', specificDate);
+      
+      // Create start and end of the day in UTC to avoid timezone issues
+      const startOfDay = new Date(specificDate.getFullYear(), specificDate.getMonth(), specificDate.getDate());
+      const endOfDay = new Date(specificDate.getFullYear(), specificDate.getMonth(), specificDate.getDate() + 1);
+      endOfDay.setMilliseconds(endOfDay.getMilliseconds() - 1); // Subtract 1 ms to get 23:59:59.999
+      
+      console.log('Start of day:', startOfDay, 'End of day:', endOfDay);
       
       query['attendance.date'] = {
         $gte: startOfDay,
         $lte: endOfDay
       };
+      
+      console.log('Date query added:', query['attendance.date']);
     } else if (req.query.startDate || req.query.endDate) {
       // Handle date range filtering for attendance date
       if (!query['attendance.date']) {
@@ -595,37 +602,46 @@ export const getAllTeamMembers = async (req, res) => {
 // Get attendance statistics for all users
 export const getAttendanceStats = async (req, res) => {
   try {
-    // Allow all authenticated users to view attendance stats
-    // const allowedRoles = ['admin', 'developer', 'analyst', 'marketing', 'sales', 'counsellor', 'telecaller', 'hr'];
-    // if (!allowedRoles.includes(req.user.role)) {
-    //   return res.status(403).json({ 
-    //     success: false, 
-    //     message: "Access denied. Only admin, developer, analyst, marketing, sales, counsellor, telecaller, and HR roles can view attendance stats." 
-    //   });
-    // }
+    // Only allow admin to view attendance stats for all users
+    const allowedRoles = ['admin'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Access denied. Only admin can view attendance stats." 
+      });
+    }
 
     let reports;
     
-    // Admin can view stats for all users, others can only view their own
-    if (req.user.role === 'admin') {
-      reports = await Report.find()
-        .populate('userId', 'name email role')
-        .sort({ createdAt: -1 });
-    } else {
-      reports = await Report.find({ userId: req.user._id })
-        .populate('userId', 'name email role')
-        .sort({ createdAt: -1 });
-    }
+    // Admin can view stats for all users
+    reports = await Report.find()
+      .populate({
+        path: 'userId',
+        select: 'name email role',
+        options: { strictPopulate: false } // Don't throw error if ref doesn't exist
+      })
+      .sort({ createdAt: -1 });
 
     // Calculate attendance statistics
     const stats = {};
     
     reports.forEach(report => {
-      const userId = report.userId._id || report.userId;
-      const userName = report.userId?.name || (report.userName && report.userName.split('@')[0]) || 'Unknown';
+      // Handle userId depending on whether it's populated or just an ObjectId string
+      let userId, userName;
+      
+      if (report.userId && typeof report.userId === 'object') {
+        // userId is populated as an object
+        userId = report.userId._id ? report.userId._id.toString() : (report.userId.toString() || 'unknown');
+        userName = report.userId.name || report.userId.email?.split('@')[0] || 'Unknown';
+      } else {
+        // userId is just an ObjectId string
+        userId = report.userId ? report.userId.toString() : 'unknown';
+        userName = report.userName && report.userName.split('@')[0] || 'Unknown';
+      }
       
       if (!stats[userId]) {
         stats[userId] = {
+          _id: userId,
           name: userName,
           presentDays: 0,
           absentDays: 0,
@@ -634,7 +650,7 @@ export const getAttendanceStats = async (req, res) => {
       }
       
       // Count as present if there's a report with attendance date
-      if (report.attendance?.date) {
+      if (report.attendance && report.attendance.date) {
         stats[userId].presentDays += 1;
       } else {
         stats[userId].absentDays += 1;
