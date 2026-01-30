@@ -26,7 +26,7 @@ const uploadToS3 = async (file) => {
 // POST: Create Payment Detail
 export const createPaymentDetail = async (req, res) => {
   try {
-    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate } = req.body;
+    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate, category } = req.body;
     if (!req.file) return res.status(400).json({ message: "Image/document is required" });
     
     // Prepare the payment detail data with tracking information
@@ -41,6 +41,7 @@ export const createPaymentDetail = async (req, res) => {
     if (billingType) paymentData.billingType = billingType;
     if (status) paymentData.status = status;
     if (reminderDate) paymentData.reminderDate = new Date(reminderDate);
+    if (category) paymentData.category = category;
     
     // Validate date range if both dates are provided
     if (startDate && endDate) {
@@ -88,10 +89,12 @@ export const createPaymentDetail = async (req, res) => {
   }
 };
 
-// GET: Fetch payment details based on user role
+// GET: Fetch payment details based on user role with filtering and pagination
 export const getAllPaymentDetails = async (req, res) => {
   try {
     const user = req.user; // populated from verifyToken middleware
+    const { page = 1, limit = 10, search, status, billingType, category, startDate, endDate, amountMin, amountMax } = req.query;
+    
     let filter = {};
 
     if (user.role === "admin") {
@@ -115,12 +118,71 @@ export const getAllPaymentDetails = async (req, res) => {
       });
     }
 
+    // Apply filters
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { details: { $regex: search, $options: 'i' } },
+      ];
+    }
+    
+    if (status) {
+      filter.status = status;
+    }
+    
+    if (billingType) {
+      filter.billingType = billingType;
+    }
+    
+    if (category) {
+      filter.category = { $regex: category, $options: 'i' };
+    }
+    
+    if (startDate || endDate) {
+      filter.startDate = {};
+      if (startDate) {
+        filter.startDate.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        filter.startDate.$lte = new Date(endDate);
+      }
+    }
+    
+    if (amountMin || amountMax) {
+      filter.amount = {};
+      if (amountMin) {
+        filter.amount.$gte = parseFloat(amountMin);
+      }
+      if (amountMax) {
+        filter.amount.$lte = parseFloat(amountMax);
+      }
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
     // Populate the createdBy field with user information
     const details = await PaymentDetail.find(filter)
       .populate('createdBy', 'name email role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
       
-    res.status(200).json({ success: true, data: details });
+    // Get total count for pagination
+    const totalCount = await PaymentDetail.countDocuments(filter);
+    
+    res.status(200).json({ 
+      success: true, 
+      data: details,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalItems: totalCount,
+        itemsPerPage: parseInt(limit),
+        hasNextPage: parseInt(page) < Math.ceil(totalCount / parseInt(limit)),
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -134,7 +196,7 @@ export const getAllPaymentDetails = async (req, res) => {
 export const updatePaymentDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate } = req.body;
+    const { name, details, startDate, endDate, amount, currency, billingType, status, reminderDate, category } = req.body;
     
     // Check if payment detail exists
     const payment = await PaymentDetail.findById(id);
@@ -184,6 +246,7 @@ export const updatePaymentDetail = async (req, res) => {
     if (billingType !== undefined) updateData.billingType = billingType;
     if (status !== undefined) updateData.status = status;
     if (reminderDate !== undefined) updateData.reminderDate = reminderDate ? new Date(reminderDate) : null;
+    if (category !== undefined) updateData.category = category;
     
     // Validate date range if both dates are provided
     if (updateData.startDate && updateData.endDate) {

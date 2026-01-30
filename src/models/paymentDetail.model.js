@@ -47,6 +47,12 @@ const paymentDetailSchema = new mongoose.Schema({
     type: Date,
     required: false,
   },
+  category: {
+    type: String,
+    required: false,
+    trim: true,
+    maxlength: 100,
+  },
   // Track who created the payment detail
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
