@@ -28,6 +28,7 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 const app = express();
+app.set('trust proxy', 1);
 
 const corsOptions = {
   origin: function(origin, callback) {
@@ -95,6 +96,10 @@ dbConnect();
 
 app.get("/", (req, res) => {
   res.send("API is running...");
+});
+
+app.get('/health', (req, res) => {
+  res.json({ success: true, status: 'OK' });
 });
 
 const PORT = process.env.PORT || 3000;
